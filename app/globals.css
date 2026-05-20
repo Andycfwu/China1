@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  --china-red: #c92920;
+  --dark-red: #9f1e18;
+  --deep-bamboo: #155c2f;
+  --dark-forest: #0b341e;
+  --jade-green: #dceedc;
+  --cream-paper: #fff8e8;
+  --warm-border: #e6d7b7;
+  --text-black: #171717;
+  --background: var(--cream-paper);
+  --foreground: var(--text-black);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--dark-forest);
+  overscroll-behavior-y: none;
+}
+
+body {
+  margin: 0;
+  background: var(--dark-forest);
+  color: var(--text-black);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 18px;
+}
+
+a {
+  text-decoration: none;
+}
+
+.paper-card {
+  border: 1px solid var(--warm-border);
+  border-radius: 1rem;
+  background: var(--cream-paper);
+  box-shadow: 0 1rem 2.25rem rgba(37, 31, 20, 0.12);
+}
+
+.forest-section {
+  position: relative;
+  isolation: isolate;
+}
+
+.menu-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(21, 92, 47, 0.55) transparent;
+}
+
+.menu-scrollbar::-webkit-scrollbar {
+  height: 0.45rem;
+  width: 0.45rem;
+}
+
+.menu-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(21, 92, 47, 0.55);
+  border-radius: 999px;
+}
+
+.fade-in {
+  animation: fade-in 520ms ease both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .fade-in {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
