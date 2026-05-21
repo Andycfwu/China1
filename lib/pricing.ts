@@ -17,14 +17,25 @@ export function formatCurrency(amount: number): string {
 // New Jersey's standard sales tax is 6.625%, but China 1 currently wants 7%.
 export const TAX_RATE = 0.07;
 
-export function calculateOrderTotals(subtotal: number) {
-  const subtotalCents = Math.round(subtotal * 100);
-  const salesTaxCents = Math.round(subtotalCents * TAX_RATE);
-  const totalCents = subtotalCents + salesTaxCents;
+export function calculateOrderTotalCents(subtotalCents: number) {
+  const safeSubtotalCents = Math.max(0, Math.round(subtotalCents));
+  const salesTaxCents = Math.round(safeSubtotalCents * TAX_RATE);
+  const totalCents = safeSubtotalCents + salesTaxCents;
 
   return {
-    salesTax: salesTaxCents / 100,
-    subtotal: subtotalCents / 100,
-    total: totalCents / 100,
+    salesTaxCents,
+    subtotalCents: safeSubtotalCents,
+    totalCents,
+  };
+}
+
+export function calculateOrderTotals(subtotal: number) {
+  const subtotalCents = Math.round(subtotal * 100);
+  const totals = calculateOrderTotalCents(subtotalCents);
+
+  return {
+    salesTax: totals.salesTaxCents / 100,
+    subtotal: totals.subtotalCents / 100,
+    total: totals.totalCents / 100,
   };
 }

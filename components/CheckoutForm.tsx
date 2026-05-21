@@ -7,9 +7,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { restaurantInfo } from "@/lib/menu-data";
 import {
-  createStoredOrder,
   fetchOnlineOrderingOpen,
-  OrderStoreError,
   subscribeToOrderChanges,
 } from "@/lib/order-store";
 import {
@@ -19,10 +17,6 @@ import {
 } from "@/lib/order-availability";
 import type { PaymentMethod, PickupTimeChoice, StoredOrder } from "@/lib/order-types";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
-
-function createOrderNumber() {
-  return `C1-${Date.now().toString().slice(-6)}`;
-}
 
 export function CheckoutForm() {
   const cart = useCart();
@@ -118,23 +112,43 @@ export function CheckoutForm() {
     setSubmitError("");
 
     try {
-      const order = await createStoredOrder({
-        customerName: customerName.trim(),
-        estimatedSubtotal: cart.estimatedSubtotal,
-        items: cart.items,
-        orderNumber: createOrderNumber(),
-        paymentMethod,
-        phone: phone.trim(),
-        pickupChoice,
-        pickupTime: pickupChoice === "ASAP" ? "ASAP" : laterTime,
-        specialInstructions: specialInstructions.trim(),
+      const response = await fetch("/api/orders", {
+        body: JSON.stringify({
+          customerName: customerName.trim(),
+          customerPhone: phone.trim(),
+          items: cart.items.map((item) => ({
+            menuItemId: item.menuItemId,
+            notes: item.notes,
+            quantity: item.quantity,
+          })),
+          paymentMethod,
+          pickupTime: pickupChoice === "ASAP" ? "ASAP" : laterTime,
+          pickupType: pickupChoice,
+          specialInstructions: specialInstructions.trim(),
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
       });
+      const result = (await response.json()) as {
+        error?: string;
+        order?: StoredOrder;
+      };
+
+      if (!response.ok || !result.order) {
+        throw new Error(
+          result.error ?? "Could not send this order. Please call the restaurant.",
+        );
+      }
+
+      const order = result.order;
 
       cart.clearCart();
       setSubmittedOrder(order);
     } catch (error) {
       setSubmitError(
-        error instanceof OrderStoreError
+        error instanceof Error
           ? error.message
           : "Could not send this order. Please call the restaurant.",
       );

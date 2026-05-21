@@ -58,6 +58,18 @@ export function isItemCurrentlyAvailable(
   return !isLunchSection(section) || isLunchSpecialAvailable(date);
 }
 
+export function findMenuItemWithSection(menuItemId: string) {
+  for (const section of menuSections) {
+    const item = section.items.find((menuItem) => menuItem.id === menuItemId);
+
+    if (item) {
+      return { item, section };
+    }
+  }
+
+  return null;
+}
+
 const lunchSection = menuSections.find(isLunchSection);
 const lunchItemIds = new Set(lunchSection?.items.map((item) => item.id) ?? []);
 const lunchItemNames = new Set(
