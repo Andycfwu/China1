@@ -72,6 +72,10 @@ a {
   animation: fade-in 520ms ease both;
 }
 
+.receipt-print {
+  display: none;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -96,5 +100,150 @@ a {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible;
+  }
+
+  .receipt-print {
+    background: #fff;
+    color: #000;
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    left: 0;
+    line-height: 1.2;
+    max-width: 80mm;
+    padding: 4mm;
+    position: absolute;
+    top: 0;
+    width: 80mm;
+  }
+
+  .receipt-center {
+    text-align: center;
+  }
+
+  .receipt-print h1 {
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1;
+    margin: 0 0 3px;
+    text-align: center;
+  }
+
+  .receipt-print p {
+    margin: 0;
+  }
+
+  .receipt-order-type {
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 1.1;
+    margin: 8px 0 6px;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .receipt-row,
+  .receipt-item-main,
+  .receipt-total-row {
+    align-items: flex-start;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .receipt-meta {
+    font-size: 14px;
+  }
+
+  .receipt-server,
+  .receipt-line-text {
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  .receipt-divider {
+    border: 0;
+    border-top: 1px solid #000;
+    margin: 6px 0;
+  }
+
+  .receipt-items {
+    margin-top: 2px;
+  }
+
+  .receipt-item {
+    margin-bottom: 9px;
+  }
+
+  .receipt-item-main {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .receipt-item-main p {
+    flex: 1;
+  }
+
+  .receipt-item-main span {
+    min-width: 48px;
+    text-align: right;
+  }
+
+  .receipt-modifier {
+    font-size: 13px;
+    padding-left: 13px;
+  }
+
+  .receipt-totals {
+    margin-left: auto;
+    width: 58mm;
+  }
+
+  .receipt-total-row {
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .receipt-grand-total {
+    font-size: 22px;
+    font-weight: 900;
+    margin-top: 2px;
+  }
+
+  .receipt-footer-note {
+    font-size: 12px;
+  }
+
+  .receipt-thank-you {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 8px;
   }
 }

@@ -1,4 +1,5 @@
 import { Flame } from "lucide-react";
+import { PriceDisplay } from "@/components/PriceDisplay";
 import type { MenuItem } from "@/lib/menu-data";
 
 type MenuItemCardProps = {
@@ -20,7 +21,7 @@ export function MenuItemCard({
         featured ? "border-red-200" : "border-green-900/10"
       }`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-[var(--jade-green)] px-2 py-1 text-xs font-black text-[var(--deep-bamboo)]">
@@ -33,13 +34,13 @@ export function MenuItemCard({
               </span>
             ) : null}
           </div>
-          <h3 className={`${compact ? "text-base sm:text-lg" : "text-xl"} mt-2.5 font-black leading-7 text-stone-950`}>
+          <h3 className={`${compact ? "text-base sm:text-lg" : "text-xl"} mt-2.5 whitespace-normal font-black leading-7 text-stone-950`}>
             {item.name}
           </h3>
         </div>
-        <p className="shrink-0 text-right text-base font-black text-[var(--china-red)] sm:text-lg">
-          {item.price}
-        </p>
+        <div className="min-w-0 sm:max-w-48">
+          <PriceDisplay align="right" price={item.price} />
+        </div>
       </div>
       {item.description ? (
         <p className="mt-2 text-sm font-semibold leading-6 text-stone-700">

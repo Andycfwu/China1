@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { BambooForestShell } from "@/components/BambooForestShell";
+import { CartProvider } from "@/components/CartProvider";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -18,11 +19,13 @@ export default function RootLayout({
   return (
     <html data-scroll-behavior="smooth" lang="en">
       <body>
-        <BambooForestShell>
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-        </BambooForestShell>
+        <CartProvider>
+          <BambooForestShell>
+            <SiteHeader />
+            {children}
+            <SiteFooter />
+          </BambooForestShell>
+        </CartProvider>
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import { restaurantInfo } from "@/lib/menu-data";
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/menu", label: "Menu" },
+  { href: "/order", label: "Order Online" },
   { href: "/party-trays", label: "Party Trays" },
   { href: "/#hours", label: "Hours" },
   { href: "/#contact", label: "Contact" },
