@@ -12,6 +12,11 @@ import {
   OrderStoreError,
   subscribeToOrderChanges,
 } from "@/lib/order-store";
+import {
+  getUnavailableLunchCartItems,
+  LUNCH_CHECKOUT_BLOCK_MESSAGE,
+  LUNCH_SPECIAL_HOURS_MESSAGE,
+} from "@/lib/order-availability";
 import type { PaymentMethod, PickupTimeChoice, StoredOrder } from "@/lib/order-types";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
 
@@ -31,8 +36,14 @@ export function CheckoutForm() {
   const [submittedOrder, setSubmittedOrder] = useState<StoredOrder | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const [onlineOrderingOpen, setOnlineOrderingOpen] = useState(true);
   const totals = calculateOrderTotals(cart.estimatedSubtotal);
+  const unavailableLunchItems = useMemo(
+    () => getUnavailableLunchCartItems(cart.items, now),
+    [cart.items, now],
+  );
+  const hasUnavailableLunchItems = unavailableLunchItems.length > 0;
 
   useEffect(() => {
     let isMounted = true;
@@ -61,9 +72,16 @@ export function CheckoutForm() {
     };
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 60_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const canSubmit = useMemo(
     () =>
       onlineOrderingOpen &&
+      !hasUnavailableLunchItems &&
       cart.items.length > 0 &&
       customerName.trim().length > 1 &&
       phone.trim().length >= 7 &&
@@ -71,6 +89,7 @@ export function CheckoutForm() {
     [
       cart.items.length,
       customerName,
+      hasUnavailableLunchItems,
       laterTime,
       onlineOrderingOpen,
       phone,
@@ -83,6 +102,11 @@ export function CheckoutForm() {
 
     if (!onlineOrderingOpen) {
       setSubmitError("Online ordering is currently closed. Please call the restaurant to order.");
+      return;
+    }
+
+    if (hasUnavailableLunchItems) {
+      setSubmitError(LUNCH_CHECKOUT_BLOCK_MESSAGE);
       return;
     }
 
@@ -301,6 +325,17 @@ export function CheckoutForm() {
             value={specialInstructions}
           />
         </label>
+
+        {hasUnavailableLunchItems ? (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-black leading-6 text-[var(--china-red)]">
+            <p>{LUNCH_CHECKOUT_BLOCK_MESSAGE}</p>
+            <p className="mt-1 text-stone-700">{LUNCH_SPECIAL_HOURS_MESSAGE}</p>
+            <p className="mt-2 text-stone-700">
+              Lunch items in cart:{" "}
+              {unavailableLunchItems.map((item) => item.name).join(", ")}
+            </p>
+          </div>
+        ) : null}
 
         <button
           className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-md bg-[var(--china-red)] px-5 py-3 text-lg font-black text-white transition hover:bg-[var(--dark-red)] disabled:cursor-not-allowed disabled:bg-stone-400"

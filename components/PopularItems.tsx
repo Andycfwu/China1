@@ -1,13 +1,26 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { menuSections, partyTraySections } from "@/lib/menu-data";
+import { menuSections } from "@/lib/menu-data";
 import type { MenuItem } from "@/lib/menu-data";
 import { MenuItemCard } from "@/components/MenuItemCard";
 
+function findMenuItem(
+  sectionId: string,
+  matcher: (item: MenuItem) => boolean,
+) {
+  return menuSections.find((section) => section.id === sectionId)?.items.find(matcher);
+}
+
 const popularItems = [
-  menuSections.find((section) => section.id === "chefs-specialties")?.items[0],
-  menuSections.find((section) => section.id === "wing-special")?.items.find((item) => item.id === "W20"),
-  partyTraySections[0]?.items.find((item) => item.id === "P9"),
+  findMenuItem(
+    "chefs-specialties",
+    (item) => item.name === "General Tso's Chicken",
+  ),
+  findMenuItem(
+    "specialty-platters",
+    (item) => item.name === "Fried Chicken Wings (4 whole)",
+  ),
+  findMenuItem("lo-mein", (item) => item.id === "33"),
 ].filter((item): item is MenuItem => Boolean(item));
 
 export function PopularItems() {

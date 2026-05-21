@@ -23,6 +23,15 @@ import {
   fetchOnlineOrderingOpen,
   subscribeToOrderChanges,
 } from "@/lib/order-store";
+import {
+  getUnavailableLunchCartItems,
+  isItemCurrentlyAvailable,
+  isLunchSection,
+  isLunchSpecialAvailable,
+  LUNCH_CHECKOUT_BLOCK_MESSAGE,
+  LUNCH_SPECIAL_HOURS_MESSAGE,
+  LUNCH_SPECIAL_UNAVAILABLE_MESSAGE,
+} from "@/lib/order-availability";
 import { formatCurrency } from "@/lib/pricing";
 
 type OrderMenuProps = {
@@ -42,12 +51,18 @@ export function OrderMenu({ sections }: OrderMenuProps) {
   const [spicyOnly, setSpicyOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cartOpen, setCartOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const [onlineOrderingOpen, setOnlineOrderingOpen] = useState(true);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
     () => (sections[0] ? { [sections[0].id]: true } : {}),
   );
 
   const isFiltering = query.trim().length > 0 || spicyOnly;
+  const unavailableLunchCartItems = useMemo(
+    () => getUnavailableLunchCartItems(cart.items, now),
+    [cart.items, now],
+  );
+  const hasUnavailableLunchCartItems = unavailableLunchCartItems.length > 0;
 
   const visibleSections = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -96,6 +111,12 @@ export function OrderMenu({ sections }: OrderMenuProps) {
       isMounted = false;
       unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 60_000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   function getItemQuantity(item: MenuItemType) {
@@ -254,7 +275,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
               cash or Cash App at pickup.
             </p>
 
-            {onlineOrderingOpen ? (
+            {onlineOrderingOpen && !hasUnavailableLunchCartItems ? (
               <Link
                 className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--china-red)] px-4 py-3 text-base font-black text-white transition hover:bg-[var(--dark-red)]"
                 href="/checkout"
@@ -262,10 +283,14 @@ export function OrderMenu({ sections }: OrderMenuProps) {
               >
                 Checkout
               </Link>
-            ) : (
+            ) : !onlineOrderingOpen ? (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-black leading-6 text-[var(--china-red)]">
                 Online ordering is currently closed. Please call the restaurant
                 to order.
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-black leading-6 text-[var(--china-red)]">
+                {LUNCH_CHECKOUT_BLOCK_MESSAGE}
               </div>
             )}
           </div>
@@ -422,6 +447,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
             <div className="grid min-w-0 gap-5 pt-2">
               {visibleSections.map((section) => {
                 const isOpen = openSections[section.id] || isFiltering;
+                const lunchSection = isLunchSection(section);
+                const lunchAvailable =
+                  !lunchSection || isLunchSpecialAvailable(now);
 
                 return (
                   <section
@@ -451,6 +479,23 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                       />
                     </button>
 
+                    {lunchSection ? (
+                      <div
+                        className={`mt-4 rounded-xl border p-3 text-sm font-black leading-6 ${
+                          lunchAvailable
+                            ? "border-green-200 bg-green-50 text-[var(--deep-bamboo)]"
+                            : "border-red-200 bg-red-50 text-[var(--china-red)]"
+                        }`}
+                      >
+                        <p>{LUNCH_SPECIAL_HOURS_MESSAGE}</p>
+                        {!lunchAvailable ? (
+                          <p className="mt-1">
+                            {LUNCH_SPECIAL_UNAVAILABLE_MESSAGE}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     {isOpen ? (
                       <>
                         {section.note ? (
@@ -462,6 +507,13 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                         <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
                           {section.items.map((item) => {
                             const quantityInCart = getItemQuantity(item);
+                            const itemAvailable = isItemCurrentlyAvailable(
+                              item,
+                              section,
+                              now,
+                            );
+                            const canAddItem =
+                              onlineOrderingOpen && itemAvailable;
 
                             return (
                               <article
@@ -506,9 +558,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
 
                                     <button
                                       className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--deep-bamboo)] px-4 py-3 text-base font-black text-white transition hover:bg-[var(--dark-forest)] disabled:cursor-not-allowed disabled:bg-stone-400 lg:min-h-11 lg:rounded-md lg:px-3 lg:py-2 lg:text-sm"
-                                      disabled={!onlineOrderingOpen}
+                                      disabled={!canAddItem}
                                       onClick={() => {
-                                        if (onlineOrderingOpen) {
+                                        if (canAddItem) {
                                           cart.addItem(item);
                                         }
                                       }}
@@ -517,6 +569,8 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                       <Plus size={16} />
                                       {!onlineOrderingOpen
                                         ? "Ordering Closed"
+                                        : !itemAvailable
+                                          ? "Lunch Unavailable"
                                         : quantityInCart > 0
                                           ? `Add More (${quantityInCart} in cart)`
                                           : "Add to Order"}
