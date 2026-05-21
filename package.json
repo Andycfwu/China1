@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "print-test": "node --experimental-strip-types scripts/print-test.ts",
+    "print-bridge": "node --experimental-strip-types scripts/print-bridge.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
+    "dotenv": "^17.4.2",
     "lucide-react": "^0.468.0",
     "next": "^16.0.0",
     "react": "^19.2.0",
