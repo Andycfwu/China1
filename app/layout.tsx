@@ -4,6 +4,7 @@ import { BambooForestShell } from "@/components/BambooForestShell";
 import { CartProvider } from "@/components/CartProvider";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "China 1 | Chinese Food Take Out Restaurant in Camden, NJ",
@@ -26,6 +27,8 @@ export default function RootLayout({
             <SiteFooter />
           </BambooForestShell>
         </CartProvider>
+        
+        <Analytics />
       </body>
     </html>
   );
