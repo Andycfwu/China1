@@ -1,9 +1,67 @@
+export type PriceOption = {
+  id: string;
+  label: string;
+  price: string;
+  unitPriceCents: number;
+};
+
+function dollarsToCents(amount: number) {
+  return Math.round(amount * 100);
+}
+
+function normalizePriceOptionId(label: string, index: number) {
+  const normalized = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || `option-${index + 1}`;
+}
+
 export function estimateUnitPrice(price: string): number {
   const dollarMatches = price.match(/\$\s*\d+(?:\.\d{1,2})?/g);
   const source = dollarMatches?.[0] ?? price.match(/\d+(?:\.\d{1,2})?/)?.[0];
   const amount = Number(source?.replace("$", "").trim() ?? 0);
 
   return Number.isFinite(amount) ? amount : 0;
+}
+
+export function parsePriceOptions(price: string): PriceOption[] {
+  const parts = price
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const sourceParts = parts.length > 0 ? parts : [price.trim()];
+  const usedIds = new Set<string>();
+
+  return sourceParts.map((part, index) => {
+    const priceMatch = part.match(/\$\s*\d+(?:\.\d{1,2})?/);
+    const rawPrice = priceMatch?.[0] ?? part.match(/\d+(?:\.\d{1,2})?/)?.[0] ?? "0";
+    const amount = Number(rawPrice.replace("$", "").trim());
+    const labelSource = priceMatch
+      ? part.replace(priceMatch[0], "").trim()
+      : part.replace(rawPrice, "").trim();
+    const label =
+      labelSource ||
+      (sourceParts.length === 1 ? "Regular" : `Option ${index + 1}`);
+    const baseId = normalizePriceOptionId(label, index);
+    let id = baseId;
+    let duplicateIndex = 2;
+
+    while (usedIds.has(id)) {
+      id = `${baseId}-${duplicateIndex}`;
+      duplicateIndex += 1;
+    }
+
+    usedIds.add(id);
+
+    return {
+      id,
+      label,
+      price: `$${amount.toFixed(2)}`,
+      unitPriceCents: Number.isFinite(amount) ? dollarsToCents(amount) : 0,
+    };
+  });
 }
 
 export function formatCurrency(amount: number): string {

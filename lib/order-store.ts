@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from "@/lib/supabase-client";
+import type { CartItemModifier } from "@/lib/menu-modifiers";
 import type { CartItem, OrderStatus, StoredOrder } from "@/lib/order-types";
 
 export const CART_STORAGE_KEY = "china1-cart-v1";
@@ -29,6 +30,10 @@ type OrderItemRow = {
   name: string;
   quantity: number;
   unit_price_cents: number;
+  selected_price_id: string | null;
+  selected_price_label: string | null;
+  selected_price: string | null;
+  modifiers: CartItemModifier[] | null;
   notes: string | null;
   spicy: boolean;
   created_at: string;
@@ -71,10 +76,14 @@ function mapItemRow(row: OrderItemRow): CartItem {
   return {
     cartId: row.id,
     menuItemId: row.menu_item_id,
+    modifiers: row.modifiers ?? [],
     name: row.name,
     notes: row.notes ?? "",
-    price: `$${centsToDollars(row.unit_price_cents).toFixed(2)}`,
+    price: row.selected_price ?? `$${centsToDollars(row.unit_price_cents).toFixed(2)}`,
     quantity: row.quantity,
+    selectedPrice: row.selected_price ?? undefined,
+    selectedPriceId: row.selected_price_id ?? undefined,
+    selectedPriceLabel: row.selected_price_label ?? undefined,
     spicy: row.spicy,
     unitPrice: centsToDollars(row.unit_price_cents),
   };
@@ -128,10 +137,14 @@ export async function createStoredOrder(
   const orderItems = order.items.map((item) => ({
     menu_item_id: item.menuItemId,
     menu_item_number: item.menuItemId,
+    modifiers: item.modifiers ?? [],
     name: item.name,
     notes: item.notes || null,
     order_id: orderRow.id,
     quantity: item.quantity,
+    selected_price: item.selectedPrice ?? item.price,
+    selected_price_id: item.selectedPriceId ?? null,
+    selected_price_label: item.selectedPriceLabel ?? null,
     spicy: Boolean(item.spicy),
     unit_price_cents: dollarsToCents(item.unitPrice),
   }));

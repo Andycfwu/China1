@@ -9,15 +9,24 @@ import {
   useState,
 } from "react";
 import type { MenuItem } from "@/lib/menu-data";
+import type { CartItemModifier } from "@/lib/menu-modifiers";
 import { CART_STORAGE_KEY } from "@/lib/order-store";
 import type { CartItem } from "@/lib/order-types";
-import { estimateUnitPrice } from "@/lib/pricing";
+import {
+  estimateUnitPrice,
+  parsePriceOptions,
+  type PriceOption,
+} from "@/lib/pricing";
 
 type CartContextValue = {
   items: CartItem[];
   itemCount: number;
   estimatedSubtotal: number;
-  addItem: (item: MenuItem) => void;
+  addItem: (
+    item: MenuItem,
+    priceOption?: PriceOption,
+    modifiers?: CartItemModifier[],
+  ) => void;
   updateQuantity: (cartId: string, quantity: number) => void;
   updateNotes: (cartId: string, notes: string) => void;
   removeItem: (cartId: string) => void;
@@ -51,12 +60,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [items]);
 
-  const addItem = useCallback((item: MenuItem) => {
+  const addItem = useCallback((
+    item: MenuItem,
+    priceOption?: PriceOption,
+    modifiers: CartItemModifier[] = [],
+  ) => {
     setItems((currentItems) => {
+      const selectedOption = priceOption ?? parsePriceOptions(item.price)[0];
+      const selectedPriceId = selectedOption?.id ?? "regular";
+      const selectedPriceLabel = selectedOption?.label ?? "Regular";
+      const selectedPrice = selectedOption?.price ?? item.price;
+      const modifierKey = JSON.stringify(
+        modifiers.map((modifier) => ({
+          groupId: modifier.groupId,
+          optionId: modifier.optionId,
+        })),
+      );
       const existingItem = currentItems.find(
         (cartItem) =>
           cartItem.menuItemId === item.id &&
           cartItem.name === item.name &&
+          (cartItem.selectedPriceId ?? "regular") === selectedPriceId &&
+          JSON.stringify(
+            (cartItem.modifiers ?? []).map((modifier) => ({
+              groupId: modifier.groupId,
+              optionId: modifier.optionId,
+            })),
+          ) === modifierKey &&
           cartItem.notes.length === 0,
       );
 
@@ -71,12 +101,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const cartItem: CartItem = {
         cartId: createCartId(),
         menuItemId: item.id,
+        modifiers,
         name: item.name,
         notes: "",
-        price: item.price,
+        price: selectedPrice,
         quantity: 1,
+        selectedPrice,
+        selectedPriceId,
+        selectedPriceLabel,
         spicy: item.spicy,
-        unitPrice: estimateUnitPrice(item.price),
+        unitPrice:
+          selectedOption && selectedOption.unitPriceCents > 0
+            ? (selectedOption.unitPriceCents +
+                modifiers.reduce(
+                  (total, modifier) => total + modifier.priceDeltaCents,
+                  0,
+                )) /
+              100
+            : estimateUnitPrice(item.price),
       };
 
       return [...currentItems, cartItem];

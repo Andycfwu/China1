@@ -516,15 +516,23 @@ export function AdminOrders() {
                         key={item.cartId}
                       >
                         <div className="flex justify-between gap-3">
-                          <p className="font-black text-stone-950">
-                            {item.quantity}x {item.name}
-                          </p>
+                          <div>
+                            <p className="font-black text-stone-950">
+                              {item.quantity}x {item.name}
+                            </p>
+                            {item.selectedPriceLabel &&
+                            item.selectedPriceLabel !== "Regular" ? (
+                              <p className="mt-1 text-xs font-black uppercase text-[var(--deep-bamboo)]">
+                                Size: {item.selectedPriceLabel}
+                              </p>
+                            ) : null}
+                          </div>
                           <p className="font-black text-[var(--china-red)]">
                             {formatCurrency(item.unitPrice * item.quantity)}
                           </p>
                         </div>
                         <p className="mt-1 text-sm font-semibold text-stone-600">
-                          Listed price: {item.price}
+                          Listed price: {item.selectedPrice ?? item.price}
                         </p>
                         {item.notes ? (
                           <p className="mt-2 rounded-md bg-amber-50 p-2 text-sm font-semibold text-stone-800">

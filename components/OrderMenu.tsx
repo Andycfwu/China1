@@ -32,7 +32,11 @@ import {
   LUNCH_SPECIAL_HOURS_MESSAGE,
   LUNCH_SPECIAL_UNAVAILABLE_MESSAGE,
 } from "@/lib/order-availability";
-import { formatCurrency } from "@/lib/pricing";
+import {
+  formatCurrency,
+  parsePriceOptions,
+  type PriceOption,
+} from "@/lib/pricing";
 
 type OrderMenuProps = {
   sections: MenuSectionType[];
@@ -50,6 +54,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
   const [query, setQuery] = useState("");
   const [spicyOnly, setSpicyOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedPriceByItemId, setSelectedPriceByItemId] = useState<
+    Record<string, string>
+  >({});
   const [cartOpen, setCartOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [onlineOrderingOpen, setOnlineOrderingOpen] = useState(true);
@@ -119,11 +126,17 @@ export function OrderMenu({ sections }: OrderMenuProps) {
     return () => window.clearInterval(interval);
   }, []);
 
-  function getItemQuantity(item: MenuItemType) {
+  function getItemQuantity(item: MenuItemType, priceOption?: PriceOption) {
     return cart.items
+      // Keep old cart lines usable if they predate size selection.
       .filter(
         (cartItem) =>
           cartItem.menuItemId === item.id && cartItem.name === item.name,
+      )
+      .filter((cartItem) =>
+        priceOption
+          ? (cartItem.selectedPriceId ?? "regular") === priceOption.id
+          : true,
       )
       .reduce((total, cartItem) => total + cartItem.quantity, 0);
   }
@@ -200,6 +213,12 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                     <p className="break-words font-black leading-5 text-stone-950">
                       {item.name}
                     </p>
+                    {item.selectedPriceLabel &&
+                    item.selectedPriceLabel !== "Regular" ? (
+                      <p className="mt-1 text-xs font-black uppercase text-[var(--deep-bamboo)]">
+                        Size: {item.selectedPriceLabel}
+                      </p>
+                    ) : null}
                     <p className="mt-1 break-words text-sm font-semibold text-stone-600">
                       {item.price}
                     </p>
@@ -506,7 +525,19 @@ export function OrderMenu({ sections }: OrderMenuProps) {
 
                         <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
                           {section.items.map((item) => {
-                            const quantityInCart = getItemQuantity(item);
+                            const priceOptions = parsePriceOptions(item.price);
+                            const hasMultiplePrices = priceOptions.length > 1;
+                            const selectedPriceId =
+                              selectedPriceByItemId[item.id] ??
+                              priceOptions[0]?.id;
+                            const selectedPriceOption =
+                              priceOptions.find(
+                                (option) => option.id === selectedPriceId,
+                              ) ?? priceOptions[0];
+                            const quantityInCart = getItemQuantity(
+                              item,
+                              selectedPriceOption,
+                            );
                             const itemAvailable = isItemCurrentlyAvailable(
                               item,
                               section,
@@ -551,17 +582,50 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                   </div>
 
                                   <div className="min-w-0 lg:text-right">
-                                    <PriceDisplay
-                                      align="right"
-                                      price={item.price}
-                                    />
+                                    {hasMultiplePrices ? (
+                                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                                        {priceOptions.map((option) => {
+                                          const selected =
+                                            selectedPriceOption?.id ===
+                                            option.id;
+
+                                          return (
+                                            <button
+                                              className={`rounded-full border px-3 py-2 text-sm font-black transition ${
+                                                selected
+                                                  ? "border-[var(--deep-bamboo)] bg-[var(--deep-bamboo)] text-white"
+                                                  : "border-green-900/20 bg-white text-[var(--deep-bamboo)] hover:bg-green-50"
+                                              }`}
+                                              disabled={!itemAvailable}
+                                              key={option.id}
+                                              onClick={() =>
+                                                setSelectedPriceByItemId(
+                                                  (current) => ({
+                                                    ...current,
+                                                    [item.id]: option.id,
+                                                  }),
+                                                )
+                                              }
+                                              type="button"
+                                            >
+                                              {option.label} {option.price}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <PriceDisplay
+                                        align="right"
+                                        price={selectedPriceOption?.price ?? item.price}
+                                      />
+                                    )}
 
                                     <button
                                       className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--deep-bamboo)] px-4 py-3 text-base font-black text-white transition hover:bg-[var(--dark-forest)] disabled:cursor-not-allowed disabled:bg-stone-400 lg:min-h-11 lg:rounded-md lg:px-3 lg:py-2 lg:text-sm"
                                       disabled={!canAddItem}
                                       onClick={() => {
-                                        if (canAddItem) {
-                                          cart.addItem(item);
+                                        if (canAddItem && selectedPriceOption) {
+                                          cart.addItem(item, selectedPriceOption);
                                         }
                                       }}
                                       type="button"
@@ -573,7 +637,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                           ? "Lunch Unavailable"
                                         : quantityInCart > 0
                                           ? `Add More (${quantityInCart} in cart)`
-                                          : "Add to Order"}
+                                          : hasMultiplePrices && selectedPriceOption
+                                            ? `Add ${selectedPriceOption.label} to Order`
+                                            : "Add to Order"}
                                     </button>
                                   </div>
                                 </div>

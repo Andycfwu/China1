@@ -18,6 +18,9 @@ type OrderItemRow = {
   name: string;
   quantity: number;
   unit_price_cents: number;
+  selected_price_id: string | null;
+  selected_price_label: string | null;
+  selected_price: string | null;
   notes: string | null;
   spicy: boolean;
   created_at: string;
@@ -49,6 +52,9 @@ export type PrintableOrder = {
     name: string;
     notes: string;
     quantity: number;
+    selectedPrice?: string;
+    selectedPriceId?: string;
+    selectedPriceLabel?: string;
     spicy: boolean;
     unitPrice: number;
   }[];
@@ -152,6 +158,9 @@ function rowToOrder(row: OrderRow): PrintableOrder {
       name: item.name,
       notes: item.notes ?? "",
       quantity: item.quantity,
+      selectedPrice: item.selected_price ?? "",
+      selectedPriceId: item.selected_price_id ?? "",
+      selectedPriceLabel: item.selected_price_label ?? "",
       spicy: item.spicy,
       unitPrice: dollars(item.unit_price_cents),
     })),
@@ -261,6 +270,10 @@ export function buildReceiptBuffer(order: PrintableOrder) {
 
     if (item.spicy) {
       parts.push(text(`   [Hot & Spicy]`));
+    }
+
+    if (item.selectedPriceLabel && item.selectedPriceLabel !== "Regular") {
+      parts.push(text(`   [Size: ${item.selectedPriceLabel}]`));
     }
 
     if (item.notes) {

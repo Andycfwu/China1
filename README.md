@@ -10,12 +10,13 @@ Add these variables to `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 NEXT_PUBLIC_ADMIN_PIN=1234
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-Optional future variables already scaffolded in `.env.local`:
+Printer bridge variables:
 
 ```env
-SUPABASE_SERVICE_ROLE_KEY=
 PRINTER_HOST=192.168.1.131
 PRINTER_PORT=9100
 ```
@@ -26,6 +27,16 @@ Run the SQL in [supabase/orders.sql](./supabase/orders.sql) in the Supabase SQL 
 - `order_items`
 - basic MVP RLS policies for anonymous pickup order insert/read/update
 - realtime publication entries for the admin order board
+
+If your database already has `order_items`, rerun the SQL or run this size
+selection migration:
+
+```sql
+alter table public.order_items
+  add column if not exists selected_price_id text,
+  add column if not exists selected_price_label text,
+  add column if not exists selected_price text;
+```
 
 The current admin page uses a simple client-side PIN gate for MVP testing. Replace it with real staff auth before using it publicly.
 

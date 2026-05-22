@@ -6,7 +6,7 @@ import {
   LUNCH_SPECIAL_HOURS_MESSAGE,
 } from "@/lib/order-availability";
 import type { PaymentMethod, PickupTimeChoice } from "@/lib/order-types";
-import { calculateOrderTotalCents, estimateUnitPrice } from "@/lib/pricing";
+import { calculateOrderTotalCents, parsePriceOptions } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export const runtime = "nodejs";
@@ -17,6 +17,7 @@ type OrderRequestItem = {
   menuItemId?: unknown;
   quantity?: unknown;
   notes?: unknown;
+  selectedPriceId?: unknown;
 };
 
 type OrderRequestBody = {
@@ -51,10 +52,6 @@ function parseOnlineOrderingOpen(row: RestaurantSettingRow | null) {
 
 function asTrimmedString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function dollarsToCents(amount: number) {
-  return Math.round(amount * 100);
 }
 
 function createOrderNumber() {
@@ -145,6 +142,7 @@ export async function POST(request: Request) {
     const menuItemId = asTrimmedString(rawItem.menuItemId);
     const quantity = Number(rawItem.quantity);
     const notes = asTrimmedString(rawItem.notes);
+    const selectedPriceId = asTrimmedString(rawItem.selectedPriceId);
     const menuMatch = findMenuItemWithSection(menuItemId);
 
     if (!menuMatch) {
@@ -168,7 +166,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const unitPriceCents = dollarsToCents(estimateUnitPrice(menuMatch.item.price));
+    const priceOptions = parsePriceOptions(menuMatch.item.price);
+    const selectedPriceOption =
+      priceOptions.length === 1
+        ? priceOptions[0]
+        : priceOptions.find((option) => option.id === selectedPriceId);
+
+    if (!selectedPriceOption || (priceOptions.length > 1 && !selectedPriceId)) {
+      return jsonError(`Please choose a size for ${menuMatch.item.name}.`, 400);
+    }
+
+    const unitPriceCents = selectedPriceOption.unitPriceCents;
 
     if (unitPriceCents <= 0) {
       return jsonError(
@@ -182,8 +190,11 @@ export async function POST(request: Request) {
       menuItemId,
       name: menuMatch.item.name,
       notes,
-      price: menuMatch.item.price,
+      price: selectedPriceOption.price,
       quantity,
+      selectedPrice: selectedPriceOption.price,
+      selectedPriceId: selectedPriceOption.id,
+      selectedPriceLabel: selectedPriceOption.label,
       spicy: Boolean(menuMatch.item.spicy),
       unitPriceCents,
     });
@@ -222,6 +233,9 @@ export async function POST(request: Request) {
     notes: item.notes || null,
     order_id: orderRow.id,
     quantity: item.quantity,
+    selected_price: item.selectedPrice,
+    selected_price_id: item.selectedPriceId,
+    selected_price_label: item.selectedPriceLabel,
     spicy: item.spicy,
     unit_price_cents: item.unitPriceCents,
   }));
@@ -249,6 +263,9 @@ export async function POST(request: Request) {
         notes: item.notes,
         price: item.price,
         quantity: item.quantity,
+        selectedPrice: item.selectedPrice,
+        selectedPriceId: item.selectedPriceId,
+        selectedPriceLabel: item.selectedPriceLabel,
         spicy: item.spicy,
         unitPrice: item.unitPriceCents / 100,
       })),

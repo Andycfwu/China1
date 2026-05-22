@@ -26,10 +26,20 @@ create table if not exists public.order_items (
   name text not null,
   quantity integer not null check (quantity > 0),
   unit_price_cents integer not null default 0 check (unit_price_cents >= 0),
+  selected_price_id text,
+  selected_price_label text,
+  selected_price text,
+  modifiers jsonb not null default '[]'::jsonb,
   notes text,
   spicy boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+alter table public.order_items
+  add column if not exists selected_price_id text,
+  add column if not exists selected_price_label text,
+  add column if not exists selected_price text,
+  add column if not exists modifiers jsonb not null default '[]'::jsonb;
 
 create table if not exists public.restaurant_settings (
   key text primary key,

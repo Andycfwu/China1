@@ -120,6 +120,7 @@ export function CheckoutForm() {
             menuItemId: item.menuItemId,
             notes: item.notes,
             quantity: item.quantity,
+            selectedPriceId: item.selectedPriceId,
           })),
           paymentMethod,
           pickupTime: pickupChoice === "ASAP" ? "ASAP" : laterTime,
@@ -381,6 +382,12 @@ export function CheckoutForm() {
                   <p className="font-black leading-5 text-stone-950">
                     {item.quantity}x {item.name}
                   </p>
+                  {item.selectedPriceLabel &&
+                  item.selectedPriceLabel !== "Regular" ? (
+                    <p className="mt-1 text-xs font-black uppercase text-[var(--deep-bamboo)]">
+                      Size: {item.selectedPriceLabel}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-sm font-semibold text-stone-600">
                     {item.price}
                   </p>
