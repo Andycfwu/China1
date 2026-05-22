@@ -58,6 +58,10 @@ function itemSearchText(item: MenuItemType) {
   }`.toLowerCase();
 }
 
+function hasExplicitSizeOptions(options: PriceOption[]) {
+  return options.some((option) => ["sm", "lg"].includes(option.id));
+}
+
 export function OrderMenu({ sections }: OrderMenuProps) {
   const cart = useCart();
 
@@ -582,7 +586,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const regularEntree =
                               isRegularEntreeSection(section);
                             const priceOptions = specialtyPlatter
-                              ? [
+                              ? hasExplicitSizeOptions(rawPriceOptions)
+                                ? rawPriceOptions
+                                : [
                                   {
                                     ...rawPriceOptions[0],
                                     id: "base",

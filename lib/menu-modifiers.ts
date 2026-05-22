@@ -137,6 +137,11 @@ export function isRegularEntreeSection(section: Pick<MenuSection, "id">) {
     "pork",
     "egg-foo-young",
     "diet-menu",
+    "chow-mei-fun",
+    "chow-mein-chop-suey",
+    "moo-shu",
+    "sweet-sour",
+    "sweet-and-sour",
   ].includes(section.id);
 }
 

@@ -115,6 +115,12 @@ function validatePhone(phone: string) {
   return /^[\d\s\-().]+$/.test(phone) && digits.length >= 7 && digits.length <= 15;
 }
 
+function hasExplicitSizeOptions(
+  options: ReturnType<typeof parsePriceOptions>,
+) {
+  return options.some((option) => ["sm", "lg"].includes(option.id));
+}
+
 export async function POST(request: Request) {
   let body: OrderRequestBody;
 
@@ -266,7 +272,9 @@ export async function POST(request: Request) {
     const specialtyPlatter = isSpecialtyPlatterSection(menuMatch.section);
     const rawPriceOptions = parsePriceOptions(menuMatch.item.price);
     const priceOptions = specialtyPlatter
-      ? [
+      ? hasExplicitSizeOptions(rawPriceOptions)
+        ? rawPriceOptions
+        : [
           {
             ...rawPriceOptions[0],
             id: "base",
@@ -275,7 +283,8 @@ export async function POST(request: Request) {
         ]
       : rawPriceOptions;
     const selectedPriceOption =
-      priceOptions.length === 1 || specialtyPlatter
+      priceOptions.length === 1 ||
+      (specialtyPlatter && !hasExplicitSizeOptions(rawPriceOptions))
         ? priceOptions[0]
         : priceOptions.find((option) => option.id === selectedPriceId);
 
