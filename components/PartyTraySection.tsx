@@ -44,7 +44,7 @@ export function PartyTraySection() {
             href={`tel:${restaurantInfo.primaryPhone.replaceAll("-", "")}`}
           >
             <Phone size={18} />
-            Call for Catering
+            Call for Catering / Party Trays
           </a>
         </div>
       </div>

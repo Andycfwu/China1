@@ -25,7 +25,7 @@ const features = [
 
 export function FeatureStrip() {
   return (
-    <section className="px-4 sm:px-8">
+    <section className="hidden px-4 sm:px-8 md:block">
       <div className="paper-card grid overflow-hidden md:grid-cols-4">
         {features.map((feature) => {
           const Icon = feature.icon;

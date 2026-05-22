@@ -65,15 +65,19 @@ export function SiteFooter() {
                 className="block hover:text-[var(--jade-green)]"
                 href={`tel:${restaurantInfo.primaryPhone.replaceAll("-", "")}`}
               >
+                <span className="font-black">Main Phone:</span>{" "}
                 {restaurantInfo.primaryPhone}
               </a>
 
-              {restaurantInfo.otherPhones.map((phone) => (
+              {restaurantInfo.otherPhones.map((phone, index) => (
                 <a
                   className="block hover:text-[var(--jade-green)]"
                   href={`tel:${phone.replaceAll("-", "")}`}
                   key={phone}
                 >
+                  <span className="font-black">
+                    {index === 0 ? "Secondary Phone" : `Phone ${index + 2}`}:
+                  </span>{" "}
                   {phone}
                 </a>
               ))}

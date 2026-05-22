@@ -18,7 +18,7 @@ export const restaurantInfo = {
   tagline: "Chinese Food Take Out Restaurant",
   address: "450 S Broadway, Camden, NJ 08103",
   primaryPhone: "856-342-6828",
-  otherPhones: ["856-365-6828", "856-479-1757"],
+  otherPhones: ["856-479-1757"],
   directionsUrl:
     "https://www.google.com/maps/search/?api=1&query=450%20S%20Broadway%2C%20Camden%2C%20NJ%2008103",
   hours: [
