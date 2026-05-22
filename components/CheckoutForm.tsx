@@ -118,6 +118,10 @@ export function CheckoutForm() {
           customerPhone: phone.trim(),
           items: cart.items.map((item) => ({
             menuItemId: item.menuItemId,
+            modifiers: (item.modifiers ?? []).map((modifier) => ({
+              groupId: modifier.groupId,
+              optionId: modifier.optionId,
+            })),
             notes: item.notes,
             quantity: item.quantity,
             selectedPriceId: item.selectedPriceId,
@@ -383,7 +387,7 @@ export function CheckoutForm() {
                     {item.quantity}x {item.name}
                   </p>
                   {item.selectedPriceLabel &&
-                  item.selectedPriceLabel !== "Regular" ? (
+                  !["Regular", "Base"].includes(item.selectedPriceLabel) ? (
                     <p className="mt-1 text-xs font-black uppercase text-[var(--deep-bamboo)]">
                       Size: {item.selectedPriceLabel}
                     </p>
@@ -391,6 +395,15 @@ export function CheckoutForm() {
                   <p className="mt-1 text-sm font-semibold text-stone-600">
                     {item.price}
                   </p>
+                  {item.modifiers?.map((modifier) => (
+                    <p
+                      className="mt-1 text-xs font-black uppercase text-stone-700"
+                      key={`${modifier.groupId}-${modifier.optionId}`}
+                    >
+                      {modifier.groupLabel}: {modifier.optionLabel} +
+                      {formatCurrency(modifier.priceDeltaCents / 100)}
+                    </p>
+                  ))}
                 </div>
                 <button
                   aria-label={`Remove ${item.name}`}

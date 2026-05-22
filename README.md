@@ -35,7 +35,8 @@ selection migration:
 alter table public.order_items
   add column if not exists selected_price_id text,
   add column if not exists selected_price_label text,
-  add column if not exists selected_price text;
+  add column if not exists selected_price text,
+  add column if not exists modifiers jsonb not null default '[]'::jsonb;
 ```
 
 The current admin page uses a simple client-side PIN gate for MVP testing. Replace it with real staff auth before using it publicly.

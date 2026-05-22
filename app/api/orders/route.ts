@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+  createCartModifier,
+  isSpecialtyPlatterSection,
+  SPECIALTY_PLATTER_SIDE_GROUP,
+} from "@/lib/menu-modifiers";
+import {
   findMenuItemWithSection,
   isLunchSection,
   isLunchSpecialAvailable,
@@ -15,6 +20,7 @@ const ONLINE_ORDERING_SETTING_KEY = "online_ordering_open";
 
 type OrderRequestItem = {
   menuItemId?: unknown;
+  modifiers?: unknown;
   quantity?: unknown;
   notes?: unknown;
   selectedPriceId?: unknown;
@@ -52,6 +58,40 @@ function parseOnlineOrderingOpen(row: RestaurantSettingRow | null) {
 
 function asTrimmedString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function validateSpecialtyPlatterModifiers(value: unknown) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  if (value.length === 0) {
+    return [];
+  }
+
+  if (value.length !== 1) {
+    return null;
+  }
+
+  const modifier = value[0] as { groupId?: unknown; optionId?: unknown };
+  const groupId = asTrimmedString(modifier.groupId);
+  const optionId = asTrimmedString(modifier.optionId);
+
+  if (groupId !== SPECIALTY_PLATTER_SIDE_GROUP.id) {
+    return null;
+  }
+
+  const option = SPECIALTY_PLATTER_SIDE_GROUP.options.find(
+    (sideOption) => sideOption.id === optionId,
+  );
+
+  return option
+    ? [createCartModifier(SPECIALTY_PLATTER_SIDE_GROUP, option)]
+    : null;
 }
 
 function createOrderNumber() {
@@ -166,9 +206,40 @@ export async function POST(request: Request) {
       );
     }
 
-    const priceOptions = parsePriceOptions(menuMatch.item.price);
+    const itemModifiers = isSpecialtyPlatterSection(menuMatch.section)
+      ? validateSpecialtyPlatterModifiers(rawItem.modifiers)
+      : [];
+
+    if (!itemModifiers) {
+      return jsonError(
+        `Please choose no side or one valid side for ${menuMatch.item.name}.`,
+        400,
+      );
+    }
+
+    if (!isSpecialtyPlatterSection(menuMatch.section)) {
+      const modifiers = Array.isArray(rawItem.modifiers)
+        ? rawItem.modifiers
+        : [];
+
+      if (modifiers.length > 0) {
+        return jsonError("Modifiers are not available for this item.", 400);
+      }
+    }
+
+    const specialtyPlatter = isSpecialtyPlatterSection(menuMatch.section);
+    const rawPriceOptions = parsePriceOptions(menuMatch.item.price);
+    const priceOptions = specialtyPlatter
+      ? [
+          {
+            ...rawPriceOptions[0],
+            id: "base",
+            label: "Base",
+          },
+        ]
+      : rawPriceOptions;
     const selectedPriceOption =
-      priceOptions.length === 1
+      priceOptions.length === 1 || specialtyPlatter
         ? priceOptions[0]
         : priceOptions.find((option) => option.id === selectedPriceId);
 
@@ -177,17 +248,23 @@ export async function POST(request: Request) {
     }
 
     const unitPriceCents = selectedPriceOption.unitPriceCents;
+    const modifierDeltaCents = itemModifiers.reduce(
+      (total, modifier) => total + modifier.priceDeltaCents,
+      0,
+    );
+    const finalUnitPriceCents = unitPriceCents + modifierDeltaCents;
 
-    if (unitPriceCents <= 0) {
+    if (finalUnitPriceCents <= 0) {
       return jsonError(
         `Could not validate the price for ${menuMatch.item.name}. Please call the restaurant.`,
         400,
       );
     }
 
-    subtotalCents += unitPriceCents * quantity;
+    subtotalCents += finalUnitPriceCents * quantity;
     validatedItems.push({
       menuItemId,
+      modifiers: itemModifiers,
       name: menuMatch.item.name,
       notes,
       price: selectedPriceOption.price,
@@ -196,7 +273,7 @@ export async function POST(request: Request) {
       selectedPriceId: selectedPriceOption.id,
       selectedPriceLabel: selectedPriceOption.label,
       spicy: Boolean(menuMatch.item.spicy),
-      unitPriceCents,
+      unitPriceCents: finalUnitPriceCents,
     });
   }
 
@@ -229,6 +306,7 @@ export async function POST(request: Request) {
   const orderItems = validatedItems.map((item) => ({
     menu_item_id: item.menuItemId,
     menu_item_number: item.menuItemId,
+    modifiers: item.modifiers,
     name: item.name,
     notes: item.notes || null,
     order_id: orderRow.id,
@@ -259,6 +337,7 @@ export async function POST(request: Request) {
       items: validatedItems.map((item, index) => ({
         cartId: `${orderRow.id}-${index}`,
         menuItemId: item.menuItemId,
+        modifiers: item.modifiers,
         name: item.name,
         notes: item.notes,
         price: item.price,

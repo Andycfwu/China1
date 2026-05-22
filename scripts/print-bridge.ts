@@ -21,6 +21,15 @@ type OrderItemRow = {
   selected_price_id: string | null;
   selected_price_label: string | null;
   selected_price: string | null;
+  modifiers:
+    | {
+        groupId: string;
+        groupLabel: string;
+        optionId: string;
+        optionLabel: string;
+        priceDeltaCents: number;
+      }[]
+    | null;
   notes: string | null;
   spicy: boolean;
   created_at: string;
@@ -49,6 +58,13 @@ export type PrintableOrder = {
   id: string;
   items: {
     id: string;
+    modifiers?: {
+      groupId: string;
+      groupLabel: string;
+      optionId: string;
+      optionLabel: string;
+      priceDeltaCents: number;
+    }[];
     name: string;
     notes: string;
     quantity: number;
@@ -155,6 +171,7 @@ function rowToOrder(row: OrderRow): PrintableOrder {
     id: row.id,
     items: (row.order_items ?? []).map((item) => ({
       id: item.id,
+      modifiers: item.modifiers ?? [],
       name: item.name,
       notes: item.notes ?? "",
       quantity: item.quantity,
@@ -272,9 +289,22 @@ export function buildReceiptBuffer(order: PrintableOrder) {
       parts.push(text(`   [Hot & Spicy]`));
     }
 
-    if (item.selectedPriceLabel && item.selectedPriceLabel !== "Regular") {
+    if (
+      item.selectedPriceLabel &&
+      !["Regular", "Base"].includes(item.selectedPriceLabel)
+    ) {
       parts.push(text(`   [Size: ${item.selectedPriceLabel}]`));
     }
+
+    item.modifiers?.forEach((modifier) => {
+      parts.push(
+        text(
+          `   [${modifier.groupLabel}: ${modifier.optionLabel} +${money(
+            modifier.priceDeltaCents / 100,
+          )}]`,
+        ),
+      );
+    });
 
     if (item.notes) {
       parts.push(text(`   [${item.notes}]`));

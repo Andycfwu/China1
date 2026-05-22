@@ -72,10 +72,20 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
               </p>
               <span>{receiptMoney(item.unitPrice * item.quantity)}</span>
             </div>
-            {item.selectedPriceLabel && item.selectedPriceLabel !== "Regular" ? (
+            {item.selectedPriceLabel &&
+            !["Regular", "Base"].includes(item.selectedPriceLabel) ? (
               <p className="receipt-modifier">[Size: {item.selectedPriceLabel}]</p>
             ) : null}
             {item.spicy ? <p className="receipt-modifier">[Hot &amp; Spicy]</p> : null}
+            {item.modifiers?.map((modifier) => (
+              <p
+                className="receipt-modifier"
+                key={`${modifier.groupId}-${modifier.optionId}`}
+              >
+                [{modifier.groupLabel}: {modifier.optionLabel} +
+                {receiptMoney(modifier.priceDeltaCents / 100)}]
+              </p>
+            ))}
             {item.notes ? <p className="receipt-modifier">[{item.notes}]</p> : null}
           </div>
         ))}

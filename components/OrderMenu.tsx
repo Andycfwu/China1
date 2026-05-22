@@ -14,6 +14,13 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { PriceDisplay } from "@/components/PriceDisplay";
+import {
+  createCartModifier,
+  getModifierGroupsForSection,
+  isSpecialtyPlatterSection,
+  SPECIALTY_PLATTER_SIDE_GROUP,
+} from "@/lib/menu-modifiers";
+import type { CartItemModifier } from "@/lib/menu-modifiers";
 import { restaurantInfo } from "@/lib/menu-data";
 import type {
   MenuItem as MenuItemType,
@@ -55,6 +62,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
   const [spicyOnly, setSpicyOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedPriceByItemId, setSelectedPriceByItemId] = useState<
+    Record<string, string>
+  >({});
+  const [selectedModifierByItemId, setSelectedModifierByItemId] = useState<
     Record<string, string>
   >({});
   const [cartOpen, setCartOpen] = useState(false);
@@ -126,7 +136,22 @@ export function OrderMenu({ sections }: OrderMenuProps) {
     return () => window.clearInterval(interval);
   }, []);
 
-  function getItemQuantity(item: MenuItemType, priceOption?: PriceOption) {
+  function modifiersKey(modifiers: CartItemModifier[]) {
+    return JSON.stringify(
+      modifiers.map((modifier) => ({
+        groupId: modifier.groupId,
+        optionId: modifier.optionId,
+      })),
+    );
+  }
+
+  function getItemQuantity(
+    item: MenuItemType,
+    priceOption?: PriceOption,
+    modifiers: CartItemModifier[] = [],
+  ) {
+    const selectedModifiersKey = modifiersKey(modifiers);
+
     return cart.items
       // Keep old cart lines usable if they predate size selection.
       .filter(
@@ -138,6 +163,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
           ? (cartItem.selectedPriceId ?? "regular") === priceOption.id
           : true,
       )
+      .filter((cartItem) => modifiersKey(cartItem.modifiers ?? []) === selectedModifiersKey)
       .reduce((total, cartItem) => total + cartItem.quantity, 0);
   }
 
@@ -214,7 +240,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                       {item.name}
                     </p>
                     {item.selectedPriceLabel &&
-                    item.selectedPriceLabel !== "Regular" ? (
+                    !["Regular", "Base"].includes(item.selectedPriceLabel) ? (
                       <p className="mt-1 text-xs font-black uppercase text-[var(--deep-bamboo)]">
                         Size: {item.selectedPriceLabel}
                       </p>
@@ -222,6 +248,15 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                     <p className="mt-1 break-words text-sm font-semibold text-stone-600">
                       {item.price}
                     </p>
+                    {item.modifiers?.map((modifier) => (
+                      <p
+                        className="mt-1 text-xs font-black uppercase text-stone-700"
+                        key={`${modifier.groupId}-${modifier.optionId}`}
+                      >
+                        {modifier.groupLabel}: {modifier.optionLabel} +
+                        {formatCurrency(modifier.priceDeltaCents / 100)}
+                      </p>
+                    ))}
                   </div>
 
                   <button
@@ -525,7 +560,34 @@ export function OrderMenu({ sections }: OrderMenuProps) {
 
                         <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
                           {section.items.map((item) => {
-                            const priceOptions = parsePriceOptions(item.price);
+                            const rawPriceOptions = parsePriceOptions(item.price);
+                            const specialtyPlatter =
+                              isSpecialtyPlatterSection(section);
+                            const priceOptions = specialtyPlatter
+                              ? [
+                                  {
+                                    ...rawPriceOptions[0],
+                                    id: "base",
+                                    label: "Base",
+                                  },
+                                ]
+                              : rawPriceOptions;
+                            const modifierGroups = getModifierGroupsForSection(section);
+                            const specialtySideOptionId =
+                              selectedModifierByItemId[item.id];
+                            const specialtySideOption =
+                              SPECIALTY_PLATTER_SIDE_GROUP.options.find(
+                                (option) => option.id === specialtySideOptionId,
+                              );
+                            const selectedModifiers =
+                              modifierGroups.length > 0 && specialtySideOption
+                                ? [
+                                    createCartModifier(
+                                      SPECIALTY_PLATTER_SIDE_GROUP,
+                                      specialtySideOption,
+                                    ),
+                                  ]
+                                : [];
                             const hasMultiplePrices = priceOptions.length > 1;
                             const selectedPriceId =
                               selectedPriceByItemId[item.id] ??
@@ -537,6 +599,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const quantityInCart = getItemQuantity(
                               item,
                               selectedPriceOption,
+                              selectedModifiers,
                             );
                             const itemAvailable = isItemCurrentlyAvailable(
                               item,
@@ -545,6 +608,16 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             );
                             const canAddItem =
                               onlineOrderingOpen && itemAvailable;
+                            const modifierDeltaCents = selectedModifiers.reduce(
+                              (total, modifier) =>
+                                total + modifier.priceDeltaCents,
+                              0,
+                            );
+                            const selectedItemTotal =
+                              selectedPriceOption &&
+                              (selectedPriceOption.unitPriceCents +
+                                modifierDeltaCents) /
+                                100;
 
                             return (
                               <article
@@ -578,6 +651,43 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                       <p className="mt-1 text-sm font-semibold leading-5 text-stone-700">
                                         {item.description}
                                       </p>
+                                    ) : null}
+
+                                    {modifierGroups.length > 0 ? (
+                                      <div className="mt-4">
+                                        <label className="block">
+                                          <span className="text-sm font-black text-[var(--deep-bamboo)]">
+                                            Add a side?
+                                          </span>
+                                          <select
+                                            className="mt-2 min-h-11 w-full rounded-xl border border-[var(--warm-border)] bg-white px-3 py-2 text-sm font-black text-stone-950 outline-none focus:border-[var(--deep-bamboo)]"
+                                            onChange={(event) =>
+                                              setSelectedModifierByItemId(
+                                                (current) => ({
+                                                  ...current,
+                                                  [item.id]: event.target.value,
+                                                }),
+                                              )
+                                            }
+                                            value={specialtySideOptionId ?? ""}
+                                          >
+                                            <option value="">No side</option>
+                                            {SPECIALTY_PLATTER_SIDE_GROUP.options.map(
+                                              (option) => (
+                                                <option
+                                                  key={option.id}
+                                                  value={option.id}
+                                                >
+                                                  {option.label} +
+                                                  {formatCurrency(
+                                                    option.priceDeltaCents / 100,
+                                                  )}
+                                                </option>
+                                              ),
+                                            )}
+                                          </select>
+                                        </label>
+                                      </div>
                                     ) : null}
                                   </div>
 
@@ -620,12 +730,41 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                       />
                                     )}
 
+                                    {selectedModifiers.length > 0 &&
+                                    selectedPriceOption ? (
+                                      <div className="mt-3 rounded-xl bg-green-50 p-3 text-sm font-black leading-6 text-stone-800 lg:text-right">
+                                        <p>
+                                          Base:{" "}
+                                          {formatCurrency(
+                                            selectedPriceOption.unitPriceCents /
+                                              100,
+                                          )}
+                                        </p>
+                                        <p>
+                                          Side:{" "}
+                                          {selectedModifiers[0].optionLabel} +
+                                          {formatCurrency(
+                                            selectedModifiers[0]
+                                              .priceDeltaCents / 100,
+                                          )}
+                                        </p>
+                                        <p className="text-[var(--china-red)]">
+                                          Item total:{" "}
+                                          {formatCurrency(selectedItemTotal)}
+                                        </p>
+                                      </div>
+                                    ) : null}
+
                                     <button
                                       className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--deep-bamboo)] px-4 py-3 text-base font-black text-white transition hover:bg-[var(--dark-forest)] disabled:cursor-not-allowed disabled:bg-stone-400 lg:min-h-11 lg:rounded-md lg:px-3 lg:py-2 lg:text-sm"
                                       disabled={!canAddItem}
                                       onClick={() => {
                                         if (canAddItem && selectedPriceOption) {
-                                          cart.addItem(item, selectedPriceOption);
+                                          cart.addItem(
+                                            item,
+                                            selectedPriceOption,
+                                            selectedModifiers,
+                                          );
                                         }
                                       }}
                                       type="button"

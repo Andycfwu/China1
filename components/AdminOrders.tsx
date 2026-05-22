@@ -521,7 +521,9 @@ export function AdminOrders() {
                               {item.quantity}x {item.name}
                             </p>
                             {item.selectedPriceLabel &&
-                            item.selectedPriceLabel !== "Regular" ? (
+                            !["Regular", "Base"].includes(
+                              item.selectedPriceLabel,
+                            ) ? (
                               <p className="mt-1 text-xs font-black uppercase text-[var(--deep-bamboo)]">
                                 Size: {item.selectedPriceLabel}
                               </p>
@@ -534,6 +536,15 @@ export function AdminOrders() {
                         <p className="mt-1 text-sm font-semibold text-stone-600">
                           Listed price: {item.selectedPrice ?? item.price}
                         </p>
+                        {item.modifiers?.map((modifier) => (
+                          <p
+                            className="mt-2 rounded-md bg-green-50 p-2 text-sm font-semibold text-stone-800"
+                            key={`${modifier.groupId}-${modifier.optionId}`}
+                          >
+                            {modifier.groupLabel}: {modifier.optionLabel} +
+                            {formatCurrency(modifier.priceDeltaCents / 100)}
+                          </p>
+                        ))}
                         {item.notes ? (
                           <p className="mt-2 rounded-md bg-amber-50 p-2 text-sm font-semibold text-stone-800">
                             Note: {item.notes}

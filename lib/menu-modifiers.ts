@@ -23,8 +23,8 @@ export type CartItemModifier = {
 
 export const SPECIALTY_PLATTER_SIDE_GROUP: MenuModifierGroup = {
   id: "specialty-platter-side",
-  label: "Choose Side",
-  required: true,
+  label: "Add a Side",
+  required: false,
   options: [
     { id: "fried-banana", label: "Fried Banana", priceDeltaCents: 225 },
     { id: "french-fries", label: "French Fries", priceDeltaCents: 225 },
