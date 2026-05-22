@@ -45,6 +45,29 @@ const RICE_AND_LO_MEIN_SIDE_UPGRADES: MenuModifierOption[] = [
   },
 ];
 
+const REGULAR_ENTREE_SIDE_UPGRADES: MenuModifierOption[] = [
+  { id: "fried-rice", label: "Fried Rice", priceDeltaCents: 200 },
+  { id: "chicken-fried-rice", label: "Chicken Fried Rice", priceDeltaCents: 250 },
+  { id: "pork-fried-rice", label: "Pork Fried Rice", priceDeltaCents: 250 },
+  { id: "beef-fried-rice", label: "Beef Fried Rice", priceDeltaCents: 300 },
+  { id: "shrimp-fried-rice", label: "Shrimp Fried Rice", priceDeltaCents: 300 },
+  {
+    id: "house-special-fried-rice",
+    label: "House Special Fried Rice",
+    priceDeltaCents: 300,
+  },
+  { id: "plain-lo-mein", label: "Plain Lo Mein", priceDeltaCents: 300 },
+  { id: "chicken-lo-mein", label: "Chicken Lo Mein", priceDeltaCents: 375 },
+  { id: "pork-lo-mein", label: "Pork Lo Mein", priceDeltaCents: 375 },
+  { id: "beef-lo-mein", label: "Beef Lo Mein", priceDeltaCents: 450 },
+  { id: "shrimp-lo-mein", label: "Shrimp Lo Mein", priceDeltaCents: 450 },
+  {
+    id: "house-special-lo-mein",
+    label: "House Special Lo Mein",
+    priceDeltaCents: 550,
+  },
+];
+
 export const SPECIALTY_PLATTER_SIDE_GROUP: MenuModifierGroup = {
   id: "specialty-platter-side",
   label: "Add a Side",
@@ -86,6 +109,13 @@ export const SPECIAL_COMBINATION_SIDE_GROUP: MenuModifierGroup = {
   options: RICE_AND_LO_MEIN_SIDE_UPGRADES,
 };
 
+export const REGULAR_ENTREE_SIDE_GROUP: MenuModifierGroup = {
+  id: "regular-entree-side",
+  label: "Side Upgrade",
+  required: false,
+  options: REGULAR_ENTREE_SIDE_UPGRADES,
+};
+
 export function isSpecialtyPlatterSection(section: Pick<MenuSection, "id">) {
   return section.id === "specialty-platters";
 }
@@ -96,6 +126,18 @@ export function isLunchSpecialSection(section: Pick<MenuSection, "id">) {
 
 export function isSpecialCombinationSection(section: Pick<MenuSection, "id">) {
   return section.id === "combination-platters";
+}
+
+export function isRegularEntreeSection(section: Pick<MenuSection, "id">) {
+  return [
+    "vegetable",
+    "seafood",
+    "chicken",
+    "beef",
+    "pork",
+    "egg-foo-young",
+    "diet-menu",
+  ].includes(section.id);
 }
 
 export function getModifierGroupsForSection(section: Pick<MenuSection, "id">) {
@@ -109,6 +151,10 @@ export function getModifierGroupsForSection(section: Pick<MenuSection, "id">) {
 
   if (isSpecialCombinationSection(section)) {
     return [SPECIAL_COMBINATION_SIDE_GROUP];
+  }
+
+  if (isRegularEntreeSection(section)) {
+    return [REGULAR_ENTREE_SIDE_GROUP];
   }
 
   return [];

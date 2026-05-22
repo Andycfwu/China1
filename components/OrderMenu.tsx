@@ -18,6 +18,7 @@ import {
   createCartModifier,
   getModifierGroupsForSection,
   isLunchSpecialSection,
+  isRegularEntreeSection,
   isSpecialCombinationSection,
   isSpecialtyPlatterSection,
 } from "@/lib/menu-modifiers";
@@ -578,6 +579,8 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const lunchSpecial = isLunchSpecialSection(section);
                             const specialCombination =
                               isSpecialCombinationSection(section);
+                            const regularEntree =
+                              isRegularEntreeSection(section);
                             const priceOptions = specialtyPlatter
                               ? [
                                   {
@@ -677,8 +680,10 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                             {lunchSpecial
                                               ? "Side upgrade"
                                               : specialCombination
-                                              ? "Side upgrade"
-                                              : "Add a side?"}
+                                                ? "Side upgrade"
+                                                : regularEntree
+                                                  ? "Side upgrade"
+                                                  : "Add a side?"}
                                           </span>
                                           <select
                                             className="mt-2 min-h-11 w-full rounded-xl border border-[var(--warm-border)] bg-white px-3 py-2 text-sm font-black text-stone-950 outline-none focus:border-[var(--deep-bamboo)]"

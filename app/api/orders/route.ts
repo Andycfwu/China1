@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import {
   createCartModifier,
   isLunchSpecialSection,
+  isRegularEntreeSection,
   isSpecialCombinationSection,
   isSpecialtyPlatterSection,
   LUNCH_SPECIAL_SIDE_GROUP,
+  REGULAR_ENTREE_SIDE_GROUP,
   SPECIAL_COMBINATION_SIDE_GROUP,
   type CartItemModifier,
   type MenuModifierGroup,
@@ -232,6 +234,11 @@ export async function POST(request: Request) {
         rawItem.modifiers,
         SPECIAL_COMBINATION_SIDE_GROUP,
       );
+    } else if (isRegularEntreeSection(menuMatch.section)) {
+      itemModifiers = validateOptionalSingleModifier(
+        rawItem.modifiers,
+        REGULAR_ENTREE_SIDE_GROUP,
+      );
     }
 
     if (!itemModifiers) {
@@ -244,7 +251,8 @@ export async function POST(request: Request) {
     if (
       !isSpecialtyPlatterSection(menuMatch.section) &&
       !isLunchSpecialSection(menuMatch.section) &&
-      !isSpecialCombinationSection(menuMatch.section)
+      !isSpecialCombinationSection(menuMatch.section) &&
+      !isRegularEntreeSection(menuMatch.section)
     ) {
       const modifiers = Array.isArray(rawItem.modifiers)
         ? rawItem.modifiers
