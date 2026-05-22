@@ -312,6 +312,10 @@ export function buildReceiptBuffer(order: PrintableOrder) {
       parts.push(text("   [Includes can soda]"));
     }
 
+    if (item.menuItemId.startsWith("C")) {
+      parts.push(text("   [Includes egg roll]"));
+    }
+
     if (item.notes) {
       parts.push(text(`   [${item.notes}]`));
     }

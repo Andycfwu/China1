@@ -551,6 +551,11 @@ export function AdminOrders() {
                             Includes can soda
                           </p>
                         ) : null}
+                        {item.menuItemId.startsWith("C") ? (
+                          <p className="mt-2 rounded-md bg-green-50 p-2 text-sm font-semibold text-stone-800">
+                            Includes egg roll
+                          </p>
+                        ) : null}
                         {item.notes ? (
                           <p className="mt-2 rounded-md bg-amber-50 p-2 text-sm font-semibold text-stone-800">
                             Note: {item.notes}

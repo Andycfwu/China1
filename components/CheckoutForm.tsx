@@ -410,6 +410,11 @@ export function CheckoutForm() {
                       Includes can soda
                     </p>
                   ) : null}
+                  {item.menuItemId.startsWith("C") ? (
+                    <p className="mt-1 text-xs font-black uppercase text-stone-700">
+                      Includes egg roll
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   aria-label={`Remove ${item.name}`}

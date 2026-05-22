@@ -18,6 +18,7 @@ import {
   createCartModifier,
   getModifierGroupsForSection,
   isLunchSpecialSection,
+  isSpecialCombinationSection,
   isSpecialtyPlatterSection,
 } from "@/lib/menu-modifiers";
 import type { CartItemModifier } from "@/lib/menu-modifiers";
@@ -261,6 +262,11 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                     {isLunchCartItem(item) ? (
                       <p className="mt-1 text-xs font-black uppercase text-stone-700">
                         Includes can soda
+                      </p>
+                    ) : null}
+                    {item.menuItemId.startsWith("C") ? (
+                      <p className="mt-1 text-xs font-black uppercase text-stone-700">
+                        Includes egg roll
                       </p>
                     ) : null}
                   </div>
@@ -570,6 +576,8 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const specialtyPlatter =
                               isSpecialtyPlatterSection(section);
                             const lunchSpecial = isLunchSpecialSection(section);
+                            const specialCombination =
+                              isSpecialCombinationSection(section);
                             const priceOptions = specialtyPlatter
                               ? [
                                   {
@@ -668,6 +676,8 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                           <span className="text-sm font-black text-[var(--deep-bamboo)]">
                                             {lunchSpecial
                                               ? "Side upgrade"
+                                              : specialCombination
+                                              ? "Side upgrade"
                                               : "Add a side?"}
                                           </span>
                                           <select
@@ -685,6 +695,8 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                             <option value="">
                                               {lunchSpecial
                                                 ? "Included side + can soda"
+                                                : specialCombination
+                                                  ? "Included side + egg roll"
                                                 : "No side"}
                                             </option>
                                             {modifierGroup.options.map(
@@ -702,9 +714,11 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                             )}
                                           </select>
                                         </label>
-                                        {lunchSpecial ? (
+                                        {lunchSpecial || specialCombination ? (
                                           <p className="mt-2 text-xs font-black uppercase text-stone-600">
-                                            Includes can soda
+                                            {lunchSpecial
+                                              ? "Includes can soda"
+                                              : "Includes egg roll"}
                                           </p>
                                         ) : null}
                                       </div>

@@ -90,6 +90,9 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
             {isLunchCartItem(item) ? (
               <p className="receipt-modifier">[Includes can soda]</p>
             ) : null}
+            {item.menuItemId.startsWith("C") ? (
+              <p className="receipt-modifier">[Includes egg roll]</p>
+            ) : null}
             {item.notes ? <p className="receipt-modifier">[{item.notes}]</p> : null}
           </div>
         ))}
