@@ -17,8 +17,8 @@ import { PriceDisplay } from "@/components/PriceDisplay";
 import {
   createCartModifier,
   getModifierGroupsForSection,
+  isLunchSpecialSection,
   isSpecialtyPlatterSection,
-  SPECIALTY_PLATTER_SIDE_GROUP,
 } from "@/lib/menu-modifiers";
 import type { CartItemModifier } from "@/lib/menu-modifiers";
 import { restaurantInfo } from "@/lib/menu-data";
@@ -33,6 +33,7 @@ import {
 import {
   getUnavailableLunchCartItems,
   isItemCurrentlyAvailable,
+  isLunchCartItem,
   isLunchSection,
   isLunchSpecialAvailable,
   LUNCH_CHECKOUT_BLOCK_MESSAGE,
@@ -257,6 +258,11 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                         {formatCurrency(modifier.priceDeltaCents / 100)}
                       </p>
                     ))}
+                    {isLunchCartItem(item) ? (
+                      <p className="mt-1 text-xs font-black uppercase text-stone-700">
+                        Includes can soda
+                      </p>
+                    ) : null}
                   </div>
 
                   <button
@@ -563,6 +569,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const rawPriceOptions = parsePriceOptions(item.price);
                             const specialtyPlatter =
                               isSpecialtyPlatterSection(section);
+                            const lunchSpecial = isLunchSpecialSection(section);
                             const priceOptions = specialtyPlatter
                               ? [
                                   {
@@ -573,18 +580,20 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                 ]
                               : rawPriceOptions;
                             const modifierGroups = getModifierGroupsForSection(section);
-                            const specialtySideOptionId =
+                            const modifierGroup = modifierGroups[0];
+                            const selectedModifierOptionId =
                               selectedModifierByItemId[item.id];
-                            const specialtySideOption =
-                              SPECIALTY_PLATTER_SIDE_GROUP.options.find(
-                                (option) => option.id === specialtySideOptionId,
+                            const selectedModifierOption =
+                              modifierGroup?.options.find(
+                                (option) =>
+                                  option.id === selectedModifierOptionId,
                               );
                             const selectedModifiers =
-                              modifierGroups.length > 0 && specialtySideOption
+                              modifierGroup && selectedModifierOption
                                 ? [
                                     createCartModifier(
-                                      SPECIALTY_PLATTER_SIDE_GROUP,
-                                      specialtySideOption,
+                                      modifierGroup,
+                                      selectedModifierOption,
                                     ),
                                   ]
                                 : [];
@@ -653,11 +662,13 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                       </p>
                                     ) : null}
 
-                                    {modifierGroups.length > 0 ? (
+                                    {modifierGroup ? (
                                       <div className="mt-4">
                                         <label className="block">
                                           <span className="text-sm font-black text-[var(--deep-bamboo)]">
-                                            Add a side?
+                                            {lunchSpecial
+                                              ? "Side upgrade"
+                                              : "Add a side?"}
                                           </span>
                                           <select
                                             className="mt-2 min-h-11 w-full rounded-xl border border-[var(--warm-border)] bg-white px-3 py-2 text-sm font-black text-stone-950 outline-none focus:border-[var(--deep-bamboo)]"
@@ -669,10 +680,14 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                                 }),
                                               )
                                             }
-                                            value={specialtySideOptionId ?? ""}
+                                            value={selectedModifierOptionId ?? ""}
                                           >
-                                            <option value="">No side</option>
-                                            {SPECIALTY_PLATTER_SIDE_GROUP.options.map(
+                                            <option value="">
+                                              {lunchSpecial
+                                                ? "Included side + can soda"
+                                                : "No side"}
+                                            </option>
+                                            {modifierGroup.options.map(
                                               (option) => (
                                                 <option
                                                   key={option.id}
@@ -687,6 +702,11 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                             )}
                                           </select>
                                         </label>
+                                        {lunchSpecial ? (
+                                          <p className="mt-2 text-xs font-black uppercase text-stone-600">
+                                            Includes can soda
+                                          </p>
+                                        ) : null}
                                       </div>
                                     ) : null}
                                   </div>

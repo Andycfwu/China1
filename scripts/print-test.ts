@@ -12,6 +12,7 @@ const testOrder: PrintableOrder = {
   items: [
     {
       id: "item-1",
+      menuItemId: "S1",
       name: "General Tso's Chicken",
       notes: "No broccoli",
       quantity: 1,
@@ -20,6 +21,7 @@ const testOrder: PrintableOrder = {
     },
     {
       id: "item-2",
+      menuItemId: "P14",
       name: "Crab Rangoon",
       notes: "30 pcs",
       quantity: 2,

@@ -1,4 +1,5 @@
 import type { StoredOrder } from "@/lib/order-types";
+import { isLunchCartItem } from "@/lib/order-availability";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
 
 function formatReceiptDateTime(value: string) {
@@ -86,6 +87,9 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
                 {receiptMoney(modifier.priceDeltaCents / 100)}]
               </p>
             ))}
+            {isLunchCartItem(item) ? (
+              <p className="receipt-modifier">[Includes can soda]</p>
+            ) : null}
             {item.notes ? <p className="receipt-modifier">[{item.notes}]</p> : null}
           </div>
         ))}

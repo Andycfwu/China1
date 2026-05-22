@@ -14,6 +14,7 @@ import {
   updateOnlineOrderingOpen,
   updateStoredOrderStatus,
 } from "@/lib/order-store";
+import { isLunchCartItem } from "@/lib/order-availability";
 import type { OrderStatus, StoredOrder } from "@/lib/order-types";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
 
@@ -545,6 +546,11 @@ export function AdminOrders() {
                             {formatCurrency(modifier.priceDeltaCents / 100)}
                           </p>
                         ))}
+                        {isLunchCartItem(item) ? (
+                          <p className="mt-2 rounded-md bg-green-50 p-2 text-sm font-semibold text-stone-800">
+                            Includes can soda
+                          </p>
+                        ) : null}
                         {item.notes ? (
                           <p className="mt-2 rounded-md bg-amber-50 p-2 text-sm font-semibold text-stone-800">
                             Note: {item.notes}

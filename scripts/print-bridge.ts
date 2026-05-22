@@ -58,6 +58,7 @@ export type PrintableOrder = {
   id: string;
   items: {
     id: string;
+    menuItemId: string;
     modifiers?: {
       groupId: string;
       groupLabel: string;
@@ -171,6 +172,7 @@ function rowToOrder(row: OrderRow): PrintableOrder {
     id: row.id,
     items: (row.order_items ?? []).map((item) => ({
       id: item.id,
+      menuItemId: item.menu_item_id,
       modifiers: item.modifiers ?? [],
       name: item.name,
       notes: item.notes ?? "",
@@ -305,6 +307,10 @@ export function buildReceiptBuffer(order: PrintableOrder) {
         ),
       );
     });
+
+    if (item.menuItemId.startsWith("L")) {
+      parts.push(text("   [Includes can soda]"));
+    }
 
     if (item.notes) {
       parts.push(text(`   [${item.notes}]`));

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import {
   createCartModifier,
+  isLunchSpecialSection,
   isSpecialtyPlatterSection,
+  LUNCH_SPECIAL_SIDE_GROUP,
+  type CartItemModifier,
+  type MenuModifierGroup,
   SPECIALTY_PLATTER_SIDE_GROUP,
 } from "@/lib/menu-modifiers";
 import {
@@ -60,7 +64,10 @@ function asTrimmedString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function validateSpecialtyPlatterModifiers(value: unknown) {
+function validateOptionalSingleModifier(
+  value: unknown,
+  group: MenuModifierGroup,
+) {
   if (value === undefined || value === null) {
     return [];
   }
@@ -81,16 +88,16 @@ function validateSpecialtyPlatterModifiers(value: unknown) {
   const groupId = asTrimmedString(modifier.groupId);
   const optionId = asTrimmedString(modifier.optionId);
 
-  if (groupId !== SPECIALTY_PLATTER_SIDE_GROUP.id) {
+  if (groupId !== group.id) {
     return null;
   }
 
-  const option = SPECIALTY_PLATTER_SIDE_GROUP.options.find(
+  const option = group.options.find(
     (sideOption) => sideOption.id === optionId,
   );
 
   return option
-    ? [createCartModifier(SPECIALTY_PLATTER_SIDE_GROUP, option)]
+    ? [createCartModifier(group, option)]
     : null;
 }
 
@@ -206,18 +213,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const itemModifiers = isSpecialtyPlatterSection(menuMatch.section)
-      ? validateSpecialtyPlatterModifiers(rawItem.modifiers)
-      : [];
+    let itemModifiers: CartItemModifier[] | null = [];
+
+    if (isSpecialtyPlatterSection(menuMatch.section)) {
+      itemModifiers = validateOptionalSingleModifier(
+        rawItem.modifiers,
+        SPECIALTY_PLATTER_SIDE_GROUP,
+      );
+    } else if (isLunchSpecialSection(menuMatch.section)) {
+      itemModifiers = validateOptionalSingleModifier(
+        rawItem.modifiers,
+        LUNCH_SPECIAL_SIDE_GROUP,
+      );
+    }
 
     if (!itemModifiers) {
       return jsonError(
-        `Please choose no side or one valid side for ${menuMatch.item.name}.`,
+        `Please choose no side upgrade or one valid side upgrade for ${menuMatch.item.name}.`,
         400,
       );
     }
 
-    if (!isSpecialtyPlatterSection(menuMatch.section)) {
+    if (
+      !isSpecialtyPlatterSection(menuMatch.section) &&
+      !isLunchSpecialSection(menuMatch.section)
+    ) {
       const modifiers = Array.isArray(rawItem.modifiers)
         ? rawItem.modifiers
         : [];

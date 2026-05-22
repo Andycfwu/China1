@@ -12,6 +12,7 @@ import {
 } from "@/lib/order-store";
 import {
   getUnavailableLunchCartItems,
+  isLunchCartItem,
   LUNCH_CHECKOUT_BLOCK_MESSAGE,
   LUNCH_SPECIAL_HOURS_MESSAGE,
 } from "@/lib/order-availability";
@@ -404,6 +405,11 @@ export function CheckoutForm() {
                       {formatCurrency(modifier.priceDeltaCents / 100)}
                     </p>
                   ))}
+                  {isLunchCartItem(item) ? (
+                    <p className="mt-1 text-xs font-black uppercase text-stone-700">
+                      Includes can soda
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   aria-label={`Remove ${item.name}`}
