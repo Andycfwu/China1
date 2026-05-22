@@ -1,5 +1,5 @@
 import { OrderMenu } from "@/components/OrderMenu";
-import { menuSections } from "@/lib/menu-data";
+import { orderableMenuSections } from "@/lib/menu-data";
 
 export default function OrderPage() {
   return (
@@ -17,7 +17,7 @@ export default function OrderPage() {
         </p>
       </section>
 
-      <OrderMenu sections={menuSections} />
+      <OrderMenu sections={orderableMenuSections} />
     </main>
   );
 }

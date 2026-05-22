@@ -1,5 +1,7 @@
 export type MenuItem = {
   id: string;
+  displayId?: string;
+  hideId?: boolean;
   name: string;
   price: string;
   spicy?: boolean;
@@ -24,7 +26,7 @@ export const restaurantInfo = {
   hours: [
     { days: "Monday-Thursday", time: "11:00 AM - 11:00 PM" },
     { days: "Friday-Saturday", time: "11:00 AM - 12:00 AM" },
-    { days: "Sunday", time: "Closed" },
+    { days: "Sunday", time: "6:00 PM - 12:00 AM" },
   ],
 };
 
@@ -167,6 +169,8 @@ export const menuSections: MenuSection[] = [
       { id: "18", name: "Chicken Stick", price: "Sm $3.50 / Lg $6.25" },
       { id: "19", name: "Boneless Spare Ribs", price: "Sm $9.75 / Lg $15.99" },
       { id: "20", name: "Pu Pu Platter", price: "$15.99" },
+      { id: "funnel-cake", hideId: true, name: "Funnel Cake", price: "$2.25" },
+      { id: "pizza-roll", hideId: true, name: "Pizza Roll", price: "$2.00" },
     ],
   },
   {
@@ -410,6 +414,11 @@ export const partyTraySections: MenuSection[] = [
       { id: "P17", name: "Egg Roll", price: "20 $38.95 / 40 $68.95 / 60 $99.99" },
     ],
   },
+];
+
+export const orderableMenuSections: MenuSection[] = [
+  ...menuSections,
+  ...partyTraySections,
 ];
 
 export const featuredCategories = [

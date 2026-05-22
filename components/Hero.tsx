@@ -42,7 +42,7 @@ export function Hero() {
           </p>
           <p className="flex justify-center gap-2 text-balance">
             <Clock className="mt-0.5 shrink-0 text-[var(--deep-bamboo)]" size={19} />
-            <span>Mon-Thu 11 AM-11 PM | Fri-Sat 11 AM-12 AM | Sun Closed</span>
+            <span>Mon-Thu 11 AM-11 PM | Fri-Sat 11 AM-12 AM | Sun 6 PM-12 AM</span>
           </p>
         </div>
 

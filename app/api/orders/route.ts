@@ -309,6 +309,7 @@ export async function POST(request: Request) {
     subtotalCents += finalUnitPriceCents * quantity;
     validatedItems.push({
       menuItemId,
+      menuItemNumber: menuMatch.item.displayId ?? (menuMatch.item.hideId ? "" : menuItemId),
       modifiers: itemModifiers,
       name: menuMatch.item.name,
       notes,
@@ -350,7 +351,7 @@ export async function POST(request: Request) {
 
   const orderItems = validatedItems.map((item) => ({
     menu_item_id: item.menuItemId,
-    menu_item_number: item.menuItemId,
+    menu_item_number: item.menuItemNumber,
     modifiers: item.modifiers,
     name: item.name,
     notes: item.notes || null,

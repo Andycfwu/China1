@@ -261,6 +261,17 @@ function textSize(width: 0 | 1, height: 0 | 1) {
   return command(0x1d, 0x21, (width << 4) | height);
 }
 
+function itemTitleLines(item: PrintableOrder["items"][number], index: number) {
+  const quantityLabel = `${item.quantity}x`;
+  const itemLabel = `${index + 1}. ${quantityLabel} ${item.name}`;
+
+  return wrapText(itemLabel.toUpperCase(), RECEIPT_WIDTH);
+}
+
+function modifierLines(value: string) {
+  return wrapText(value, RECEIPT_WIDTH - 3).map((lineText) => `   ${lineText}`);
+}
+
 export function buildReceiptBuffer(order: PrintableOrder) {
   const totals = calculateOrderTotals(order.subtotal);
   const parts: Buffer[] = [];
@@ -283,47 +294,83 @@ export function buildReceiptBuffer(order: PrintableOrder) {
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
 
   order.items.forEach((item, index) => {
-    const itemLabel = `${index + 1}. ${item.quantity > 1 ? `${item.quantity}x ` : ""}${item.name}`;
-    parts.push(bold(true), text(line(itemLabel, money(item.unitPrice * item.quantity))));
-    parts.push(bold(false));
+    parts.push(bold(true), textSize(0, 1));
+    itemTitleLines(item, index).forEach((itemLine, lineIndex) => {
+      parts.push(
+        text(
+          lineIndex === 0
+            ? line(itemLine, money(item.unitPrice * item.quantity))
+            : itemLine,
+        ),
+      );
+    });
+    parts.push(textSize(0, 0), bold(false));
 
     if (item.spicy) {
-      parts.push(text(`   [Hot & Spicy]`));
+      parts.push(bold(true));
+      modifierLines("[Hot & Spicy]").forEach((modifierLine) => {
+        parts.push(text(modifierLine));
+      });
+      parts.push(bold(false));
     }
 
     if (
       item.selectedPriceLabel &&
       !["Regular", "Base"].includes(item.selectedPriceLabel)
     ) {
-      parts.push(text(`   [Size: ${item.selectedPriceLabel}]`));
+      parts.push(bold(true));
+      modifierLines(`[Size: ${item.selectedPriceLabel}]`).forEach((modifierLine) => {
+        parts.push(text(modifierLine));
+      });
+      parts.push(bold(false));
     }
 
     item.modifiers?.forEach((modifier) => {
-      parts.push(
-        text(
-          `   [${modifier.groupLabel}: ${modifier.optionLabel} +${money(
-            modifier.priceDeltaCents / 100,
-          )}]`,
-        ),
-      );
+      parts.push(bold(true));
+      modifierLines(
+        `[${modifier.groupLabel}: ${modifier.optionLabel} +${money(
+          modifier.priceDeltaCents / 100,
+        )}]`,
+      ).forEach((modifierLine) => {
+        parts.push(text(modifierLine));
+      });
+      parts.push(bold(false));
     });
 
     if (item.menuItemId.startsWith("L")) {
-      parts.push(text("   [Includes can soda]"));
+      parts.push(bold(true));
+      modifierLines("[Includes can soda]").forEach((modifierLine) => {
+        parts.push(text(modifierLine));
+      });
+      parts.push(bold(false));
     }
 
     if (item.menuItemId.startsWith("C")) {
-      parts.push(text("   [Includes egg roll]"));
+      parts.push(bold(true));
+      modifierLines("[Includes egg roll]").forEach((modifierLine) => {
+        parts.push(text(modifierLine));
+      });
+      parts.push(bold(false));
     }
 
     if (item.notes) {
-      parts.push(text(`   [${item.notes}]`));
+      parts.push(bold(true));
+      modifierLines(`Note: ${item.notes}`).forEach((modifierLine) => {
+        parts.push(text(modifierLine));
+      });
+      parts.push(bold(false));
     }
+
+    parts.push(text(""));
   });
 
   if (order.specialInstructions) {
     parts.push(text("-".repeat(RECEIPT_WIDTH)));
-    parts.push(text(`   [${order.specialInstructions}]`));
+    parts.push(bold(true));
+    modifierLines(`Order note: ${order.specialInstructions}`).forEach((modifierLine) => {
+      parts.push(text(modifierLine));
+    });
+    parts.push(bold(false));
   }
 
   parts.push(text("-".repeat(RECEIPT_WIDTH)));

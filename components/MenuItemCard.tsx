@@ -24,9 +24,11 @@ export function MenuItemCard({
       <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-[var(--jade-green)] px-2 py-1 text-xs font-black text-[var(--deep-bamboo)]">
-              {item.id}
-            </span>
+            {!item.hideId ? (
+              <span className="rounded-md bg-[var(--jade-green)] px-2 py-1 text-xs font-black text-[var(--deep-bamboo)]">
+                {item.displayId ?? item.id}
+              </span>
+            ) : null}
             {item.spicy ? (
               <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-1 text-xs font-black text-[var(--china-red)]">
                 <Flame aria-hidden="true" size={15} fill="currentColor" />

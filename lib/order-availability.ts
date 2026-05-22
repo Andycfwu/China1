@@ -1,4 +1,4 @@
-import { menuSections } from "@/lib/menu-data";
+import { menuSections, orderableMenuSections } from "@/lib/menu-data";
 import type { MenuItem, MenuSection } from "@/lib/menu-data";
 import type { CartItem } from "@/lib/order-types";
 
@@ -59,7 +59,7 @@ export function isItemCurrentlyAvailable(
 }
 
 export function findMenuItemWithSection(menuItemId: string) {
-  for (const section of menuSections) {
+  for (const section of orderableMenuSections) {
     const item = section.items.find((menuItem) => menuItem.id === menuItemId);
 
     if (item) {

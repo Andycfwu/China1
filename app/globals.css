@@ -132,7 +132,7 @@ a {
     color: #000;
     display: block;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     left: 0;
     line-height: 1.2;
     max-width: 80mm;
@@ -198,26 +198,35 @@ a {
   }
 
   .receipt-item {
-    margin-bottom: 9px;
+    margin-bottom: 13px;
   }
 
   .receipt-item-main {
-    font-size: 15px;
-    font-weight: 800;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1.08;
   }
 
   .receipt-item-main p {
     flex: 1;
+    overflow-wrap: anywhere;
   }
 
   .receipt-item-main span {
-    min-width: 48px;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1.1;
+    min-width: 44px;
     text-align: right;
   }
 
   .receipt-modifier {
-    font-size: 13px;
-    padding-left: 13px;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.18;
+    margin-top: 3px;
+    overflow-wrap: anywhere;
+    padding-left: 12px;
   }
 
   .receipt-totals {
