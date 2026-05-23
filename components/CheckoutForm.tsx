@@ -16,6 +16,7 @@ import {
   LUNCH_CHECKOUT_BLOCK_MESSAGE,
   LUNCH_SPECIAL_HOURS_MESSAGE,
 } from "@/lib/order-availability";
+import { formatCartModifierLabel } from "@/lib/menu-modifiers";
 import type { PaymentMethod, PickupTimeChoice, StoredOrder } from "@/lib/order-types";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
 
@@ -401,8 +402,7 @@ export function CheckoutForm() {
                       className="mt-1 text-xs font-black uppercase text-stone-700"
                       key={`${modifier.groupId}-${modifier.optionId}`}
                     >
-                      {modifier.groupLabel}: {modifier.optionLabel} +
-                      {formatCurrency(modifier.priceDeltaCents / 100)}
+                      {formatCartModifierLabel(modifier)}
                     </p>
                   ))}
                   {isLunchCartItem(item) ? (

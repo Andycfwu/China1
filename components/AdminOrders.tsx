@@ -14,6 +14,7 @@ import {
   updateOnlineOrderingOpen,
   updateStoredOrderStatus,
 } from "@/lib/order-store";
+import { formatCartModifierLabel } from "@/lib/menu-modifiers";
 import { isLunchCartItem } from "@/lib/order-availability";
 import type { OrderStatus, StoredOrder } from "@/lib/order-types";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
@@ -542,8 +543,7 @@ export function AdminOrders() {
                             className="mt-2 rounded-md bg-green-50 p-2 text-sm font-semibold text-stone-800"
                             key={`${modifier.groupId}-${modifier.optionId}`}
                           >
-                            {modifier.groupLabel}: {modifier.optionLabel} +
-                            {formatCurrency(modifier.priceDeltaCents / 100)}
+                            {formatCartModifierLabel(modifier)}
                           </p>
                         ))}
                         {isLunchCartItem(item) ? (

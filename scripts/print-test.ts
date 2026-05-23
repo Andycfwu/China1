@@ -12,21 +12,39 @@ const testOrder: PrintableOrder = {
   items: [
     {
       id: "item-1",
-      menuItemId: "S1",
-      name: "General Tso's Chicken",
-      notes: "No broccoli",
+      menuItemId: "B",
+      modifiers: [
+        {
+          groupId: "specialty-platter-side",
+          groupLabel: "Add a Side",
+          optionId: "french-fries",
+          optionLabel: "French Fries",
+          priceDeltaCents: 225,
+        },
+      ],
+      name: "Fried Chicken Wings (4 Whole)",
+      notes: "",
       quantity: 1,
-      spicy: true,
-      unitPrice: 12.95,
+      spicy: false,
+      unitPrice: 8.75,
     },
     {
       id: "item-2",
-      menuItemId: "P14",
-      name: "Crab Rangoon",
-      notes: "30 pcs",
-      quantity: 2,
+      menuItemId: "12",
+      modifiers: [
+        {
+          groupId: "item-option",
+          groupLabel: "Option",
+          optionId: "fried",
+          optionLabel: "Fried",
+          priceDeltaCents: 0,
+        },
+      ],
+      name: "Dumplings",
+      notes: "",
+      quantity: 1,
       spicy: false,
-      unitPrice: 6.95,
+      unitPrice: 7.99,
     },
   ],
   orderNumber: "TEST-001",
@@ -35,7 +53,7 @@ const testOrder: PrintableOrder = {
   pickupChoice: "ASAP",
   pickupTime: "ASAP",
   specialInstructions: "This is a printer test.",
-  subtotal: 26.85,
+  subtotal: 16.74,
 };
 
 console.log("[print-test] Sending test receipt to thermal printer...");

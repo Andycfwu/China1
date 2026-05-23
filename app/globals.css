@@ -160,7 +160,7 @@ a {
   }
 
   .receipt-order-type {
-    font-size: 25px;
+    font-size: 23px;
     font-weight: 400;
     line-height: 1.1;
     margin: 8px 0 6px;
@@ -198,13 +198,13 @@ a {
   }
 
   .receipt-item {
-    margin-bottom: 13px;
+    margin-bottom: 8px;
   }
 
   .receipt-item-main {
-    font-size: 20px;
-    font-weight: 900;
-    line-height: 1.08;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.18;
   }
 
   .receipt-item-main p {
@@ -213,18 +213,18 @@ a {
   }
 
   .receipt-item-main span {
-    font-size: 17px;
-    font-weight: 900;
-    line-height: 1.1;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.18;
     min-width: 44px;
     text-align: right;
   }
 
   .receipt-modifier {
-    font-size: 16px;
-    font-weight: 800;
-    line-height: 1.18;
-    margin-top: 3px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 2px;
     overflow-wrap: anywhere;
     padding-left: 12px;
   }
@@ -235,12 +235,12 @@ a {
   }
 
   .receipt-total-row {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
   }
 
   .receipt-grand-total {
-    font-size: 22px;
+    font-size: 17px;
     font-weight: 900;
     margin-top: 2px;
   }

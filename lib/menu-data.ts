@@ -1,3 +1,9 @@
+export type MenuItemOption = {
+  id?: string;
+  label: string;
+  price?: string;
+};
+
 export type MenuItem = {
   id: string;
   displayId?: string;
@@ -6,6 +12,7 @@ export type MenuItem = {
   price: string;
   spicy?: boolean;
   description?: string;
+  options?: MenuItemOption[];
 };
 
 export type MenuSection = {
@@ -160,7 +167,15 @@ export const menuSections: MenuSection[] = [
       { id: "9", name: "Cheese Wonton (10)", price: "$4.75" },
       { id: "10", name: "Fried Wonton (10) with Sauce", price: "$5.25" },
       { id: "11", name: "Mozzarella Sticks (5 pcs)", price: "$5.25" },
-      { id: "12", name: "Shrimp Toast (4)", price: "$5.25" },
+      {
+        id: "12",
+        name: "Dumplings",
+        price: "$7.99",
+        options: [
+          { id: "steamed", label: "Steamed" },
+          { id: "fried", label: "Fried" },
+        ],
+      },
       { id: "13", name: "Krab Rangoons (8)", price: "$7.99" },
       { id: "14", name: "Cold Noodles with Sesame Sauce", price: "$6.95", spicy: true },
       { id: "15", name: "Cheese Steak", price: "$6.25" },
@@ -226,7 +241,15 @@ export const menuSections: MenuSection[] = [
       { id: "21", name: "Wonton Soup", price: "Pt $3.25 / Qt $5.95" },
       { id: "22", name: "Wonton Egg Drop Soup", price: "Pt $3.25 / Qt $5.95" },
       { id: "23", name: "Egg Drop Soup", price: "Pt $3.25 / Qt $5.95" },
-      { id: "24", name: "Chicken Noodle or Rice Soup", price: "Pt $3.25 / Qt $5.95" },
+      {
+        id: "24",
+        name: "Chicken Soup",
+        price: "Pt $3.25 / Qt $5.95",
+        options: [
+          { id: "noodle", label: "Noodle" },
+          { id: "rice", label: "Rice" },
+        ],
+      },
       { id: "25", name: "Hot and Sour Soup", price: "Pt $3.75 / Qt $6.75", spicy: true },
       { id: "26", name: "House Special Soup", price: "$6.95" },
       { id: "27", name: "Vegetable Soup", price: "$5.95" },

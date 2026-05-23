@@ -1,5 +1,9 @@
 import type { StoredOrder } from "@/lib/order-types";
 import { isLunchCartItem } from "@/lib/order-availability";
+import {
+  formatCartModifierLabel,
+  ITEM_OPTION_GROUP_ID,
+} from "@/lib/menu-modifiers";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
 
 function formatReceiptDateTime(value: string) {
@@ -26,6 +30,10 @@ function pickupLabel(order: StoredOrder) {
   return order.pickupChoice === "ASAP"
     ? "Online_Pickup ASAP"
     : `Online_Pickup ${order.pickupTime}`;
+}
+
+function receiptItemLabel(item: StoredOrder["items"][number]) {
+  return item.name;
 }
 
 export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
@@ -69,7 +77,7 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
             <div className="receipt-item-main">
               <p>
                 {index + 1}. {item.quantity > 1 ? `${item.quantity}x ` : ""}
-                {item.name}
+                {receiptItemLabel(item)}
               </p>
               <span>{receiptMoney(item.unitPrice * item.quantity)}</span>
             </div>
@@ -83,8 +91,9 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
                 className="receipt-modifier"
                 key={`${modifier.groupId}-${modifier.optionId}`}
               >
-                [{modifier.groupLabel}: {modifier.optionLabel} +
-                {receiptMoney(modifier.priceDeltaCents / 100)}]
+                [{modifier.groupId === ITEM_OPTION_GROUP_ID
+                  ? modifier.optionLabel
+                  : formatCartModifierLabel(modifier)}]
               </p>
             ))}
             {isLunchCartItem(item) ? (
@@ -113,11 +122,11 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
           <span>{receiptMoney(totals.subtotal)}</span>
         </div>
         <div className="receipt-total-row">
-          <span>Sales Tax:</span>
+          <span>Tax:</span>
           <span>{receiptMoney(totals.salesTax)}</span>
         </div>
         <div className="receipt-total-row receipt-grand-total">
-          <span>Estimated Total:</span>
+          <span>Total:</span>
           <span>{receiptMoney(totals.total)}</span>
         </div>
       </div>
@@ -126,7 +135,6 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
 
       <div className="receipt-center receipt-footer-note">
         <p>Prices subject to change.</p>
-        <p>Pay at pickup: {order.paymentMethod}</p>
         <p className="receipt-thank-you">Thank You</p>
       </div>
     </section>

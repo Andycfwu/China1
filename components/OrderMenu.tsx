@@ -16,6 +16,8 @@ import { useCart } from "@/components/CartProvider";
 import { PriceDisplay } from "@/components/PriceDisplay";
 import {
   createCartModifier,
+  formatCartModifierLabel,
+  getItemOptionGroup,
   getModifierGroupsForSection,
   isLunchSpecialSection,
   isRegularEntreeSection,
@@ -55,6 +57,7 @@ type OrderMenuProps = {
 function itemSearchText(item: MenuItemType) {
   return `${item.displayId ?? item.id} ${item.name} ${item.price} ${
     item.description ?? ""
+  } ${item.options?.map((option) => option.label).join(" ") ?? ""
   }`.toLowerCase();
 }
 
@@ -260,8 +263,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                         className="mt-1 text-xs font-black uppercase text-stone-700"
                         key={`${modifier.groupId}-${modifier.optionId}`}
                       >
-                        {modifier.groupLabel}: {modifier.optionLabel} +
-                        {formatCurrency(modifier.priceDeltaCents / 100)}
+                        {formatCartModifierLabel(modifier)}
                       </p>
                     ))}
                     {isLunchCartItem(item) ? (
@@ -596,8 +598,12 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                   },
                                 ]
                               : rawPriceOptions;
-                            const modifierGroups = getModifierGroupsForSection(section);
+                            const itemOptionGroup = getItemOptionGroup(item);
+                            const modifierGroups = itemOptionGroup
+                              ? [itemOptionGroup]
+                              : getModifierGroupsForSection(section);
                             const modifierGroup = modifierGroups[0];
+                            const modifierRequired = Boolean(modifierGroup?.required);
                             const selectedModifierOptionId =
                               selectedModifierByItemId[item.id];
                             const selectedModifierOption =
@@ -633,7 +639,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                               now,
                             );
                             const canAddItem =
-                              onlineOrderingOpen && itemAvailable;
+                              onlineOrderingOpen &&
+                              itemAvailable &&
+                              (!modifierRequired || Boolean(selectedModifierOption));
                             const modifierDeltaCents = selectedModifiers.reduce(
                               (total, modifier) =>
                                 total + modifier.priceDeltaCents,
@@ -691,7 +699,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                                 ? "Side upgrade"
                                                 : regularEntree
                                                   ? "Side upgrade"
-                                                  : "Add a side?"}
+                                                  : itemOptionGroup
+                                                    ? "Choose"
+                                                    : "Add a side?"}
                                           </span>
                                           <select
                                             className="mt-2 min-h-11 w-full rounded-xl border border-[var(--warm-border)] bg-white px-3 py-2 text-sm font-black text-stone-950 outline-none focus:border-[var(--deep-bamboo)]"
@@ -706,7 +716,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                             value={selectedModifierOptionId ?? ""}
                                           >
                                             <option value="">
-                                              {lunchSpecial
+                                              {itemOptionGroup
+                                                ? "Choose one"
+                                                : lunchSpecial
                                                 ? "Included side + can soda"
                                                 : specialCombination
                                                   ? "Included side + egg roll"
@@ -718,10 +730,12 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                                   key={option.id}
                                                   value={option.id}
                                                 >
-                                                  {option.label} +
-                                                  {formatCurrency(
-                                                    option.priceDeltaCents / 100,
-                                                  )}
+                                                  {option.label}
+                                                  {option.priceDeltaCents > 0
+                                                    ? ` +${formatCurrency(
+                                                        option.priceDeltaCents / 100,
+                                                      )}`
+                                                    : ""}
                                                 </option>
                                               ),
                                             )}
@@ -788,12 +802,15 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                           )}
                                         </p>
                                         <p>
-                                          Side:{" "}
-                                          {selectedModifiers[0].optionLabel} +
-                                          {formatCurrency(
-                                            selectedModifiers[0]
-                                              .priceDeltaCents / 100,
-                                          )}
+                                          {selectedModifiers[0].groupLabel}:{" "}
+                                          {selectedModifiers[0].optionLabel}
+                                          {selectedModifiers[0]
+                                            .priceDeltaCents > 0
+                                            ? ` +${formatCurrency(
+                                                selectedModifiers[0]
+                                                  .priceDeltaCents / 100,
+                                              )}`
+                                            : ""}
                                         </p>
                                         <p className="text-[var(--china-red)]">
                                           Item total:{" "}
@@ -821,6 +838,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                         ? "Ordering Closed"
                                         : !itemAvailable
                                           ? "Lunch Unavailable"
+                                        : modifierRequired &&
+                                            !selectedModifierOption
+                                          ? "Choose option"
                                         : quantityInCart > 0
                                           ? `Add More (${quantityInCart} in cart)`
                                           : hasMultiplePrices && selectedPriceOption

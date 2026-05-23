@@ -262,14 +262,29 @@ function textSize(width: 0 | 1, height: 0 | 1) {
 }
 
 function itemTitleLines(item: PrintableOrder["items"][number], index: number) {
-  const quantityLabel = `${item.quantity}x`;
-  const itemLabel = `${index + 1}. ${quantityLabel} ${item.name}`;
+  const quantityPrefix = item.quantity > 1 ? `${item.quantity} ` : "";
+  const itemLabel = `${index + 1}. ${quantityPrefix}${item.name}`;
 
-  return wrapText(itemLabel.toUpperCase(), RECEIPT_WIDTH);
+  return wrapText(itemLabel, RECEIPT_WIDTH);
 }
 
 function modifierLines(value: string) {
   return wrapText(value, RECEIPT_WIDTH - 3).map((lineText) => `   ${lineText}`);
+}
+
+function modifierLabel(
+  modifier: NonNullable<PrintableOrder["items"][number]["modifiers"]>[number],
+) {
+  if (modifier.groupId === "item-option") {
+    return modifier.optionLabel;
+  }
+
+  const priceSuffix =
+    modifier.priceDeltaCents > 0
+      ? ` +${money(modifier.priceDeltaCents / 100)}`
+      : "";
+
+  return `${modifier.groupLabel}: ${modifier.optionLabel}${priceSuffix}`;
 }
 
 export function buildReceiptBuffer(order: PrintableOrder) {
@@ -282,7 +297,7 @@ export function buildReceiptBuffer(order: PrintableOrder) {
   parts.push(text("450 S Broadway, Camden, NJ 08103"));
   parts.push(text("Tel:(856)432-6828"));
   parts.push(text(""));
-  parts.push(textSize(1, 1), text("Online_Order / Pickup"), textSize(0, 0));
+  parts.push(textSize(1, 0), text("Online_Order / Pickup"), textSize(0, 0));
   parts.push(align("left"));
   parts.push(text(line(receiptDateTime(order.createdAt), order.orderNumber)));
   parts.push(text("Server: Online"));
@@ -294,7 +309,7 @@ export function buildReceiptBuffer(order: PrintableOrder) {
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
 
   order.items.forEach((item, index) => {
-    parts.push(bold(true), textSize(0, 1));
+    parts.push(bold(true), textSize(0, 0));
     itemTitleLines(item, index).forEach((itemLine, lineIndex) => {
       parts.push(
         text(
@@ -304,64 +319,50 @@ export function buildReceiptBuffer(order: PrintableOrder) {
         ),
       );
     });
-    parts.push(textSize(0, 0), bold(false));
+    parts.push(bold(false));
 
     if (item.spicy) {
-      parts.push(bold(true));
       modifierLines("[Hot & Spicy]").forEach((modifierLine) => {
         parts.push(text(modifierLine));
       });
-      parts.push(bold(false));
     }
 
     if (
       item.selectedPriceLabel &&
       !["Regular", "Base"].includes(item.selectedPriceLabel)
     ) {
-      parts.push(bold(true));
       modifierLines(`[Size: ${item.selectedPriceLabel}]`).forEach((modifierLine) => {
         parts.push(text(modifierLine));
       });
-      parts.push(bold(false));
     }
 
     item.modifiers?.forEach((modifier) => {
-      parts.push(bold(true));
-      modifierLines(
-        `[${modifier.groupLabel}: ${modifier.optionLabel} +${money(
-          modifier.priceDeltaCents / 100,
-        )}]`,
-      ).forEach((modifierLine) => {
+      modifierLines(`[${modifierLabel(modifier)}]`).forEach((modifierLine) => {
         parts.push(text(modifierLine));
       });
-      parts.push(bold(false));
     });
 
     if (item.menuItemId.startsWith("L")) {
-      parts.push(bold(true));
       modifierLines("[Includes can soda]").forEach((modifierLine) => {
         parts.push(text(modifierLine));
       });
-      parts.push(bold(false));
     }
 
     if (item.menuItemId.startsWith("C")) {
-      parts.push(bold(true));
       modifierLines("[Includes egg roll]").forEach((modifierLine) => {
         parts.push(text(modifierLine));
       });
-      parts.push(bold(false));
     }
 
     if (item.notes) {
-      parts.push(bold(true));
       modifierLines(`Note: ${item.notes}`).forEach((modifierLine) => {
         parts.push(text(modifierLine));
       });
-      parts.push(bold(false));
     }
 
-    parts.push(text(""));
+    if (index < order.items.length - 1) {
+      parts.push(text(""));
+    }
   });
 
   if (order.specialInstructions) {
@@ -375,9 +376,9 @@ export function buildReceiptBuffer(order: PrintableOrder) {
 
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(text(line("Subtotal:", money(totals.subtotal))));
-  parts.push(text(line("Sales Tax:", money(totals.salesTax))));
-  parts.push(bold(true), textSize(1, 1));
-  parts.push(text(line("Estimated Total:", money(totals.total), 24)));
+  parts.push(text(line("Tax:", money(totals.salesTax))));
+  parts.push(bold(true));
+  parts.push(text(line("Total:", money(totals.total))));
   parts.push(textSize(0, 0), bold(false));
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(align("center"));

@@ -38,9 +38,9 @@ export function PopularItems() {
           </div>
           <Link
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--deep-bamboo)] px-4 py-2 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-[var(--dark-forest)]"
-            href="/order"
+            href="/menu"
           >
-            Order Online
+            View Full Menu
             <ArrowRight aria-hidden="true" size={17} />
           </Link>
         </div>

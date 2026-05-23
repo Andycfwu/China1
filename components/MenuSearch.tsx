@@ -27,7 +27,7 @@ export function MenuSearch({ sections }: MenuSearchProps) {
         const items = section.items.filter((item) => {
           const text = `${item.displayId ?? item.id} ${item.name} ${item.price} ${
             item.description ?? ""
-          }`.toLowerCase();
+          } ${item.options?.map((option) => option.label).join(" ") ?? ""}`.toLowerCase();
           const matchesQuery = !normalizedQuery || sectionMatches || text.includes(normalizedQuery);
           const matchesSpicy = !spicyOnly || item.spicy;
           return matchesQuery && matchesSpicy;

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Menu, Phone, X } from "lucide-react";
 import { useState } from "react";
@@ -19,16 +20,22 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--warm-border)] bg-[rgba(255,248,232,0.88)] backdrop-blur-md">
-      <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
-        <Link className="group flex min-w-0 items-center gap-3" href="/">
-          <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[var(--china-red)] text-xl font-black text-white shadow-md ring-4 ring-white/80">
-            1
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:gap-4 sm:px-8 sm:py-4">
+        <Link className="group flex min-w-0 items-center gap-2 sm:gap-3" href="/">
+          <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white shadow-md ring-2 ring-white/80 sm:size-11 sm:ring-4">
+            <Image
+              src="/images/panda-logo.png"
+              alt=""
+              width={44}
+              height={44}
+              className="h-full w-full object-contain p-1"
+            />
           </span>
           <span className="min-w-0">
-            <span className="block text-2xl font-black leading-none tracking-normal text-[var(--china-red)] transition group-hover:text-[var(--dark-red)]">
+            <span className="block text-xl font-black leading-none tracking-normal text-[var(--china-red)] transition group-hover:text-[var(--dark-red)] sm:text-2xl">
               CHINA 1
             </span>
-            <span className="block text-xs font-black text-stone-800">
+            <span className="block text-[10px] font-black leading-tight text-stone-800 sm:text-xs">
               Chinese Food Take Out
             </span>
           </span>
@@ -54,12 +61,12 @@ export function SiteHeader() {
             Order Online
           </Link>
           <a
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[var(--dark-forest)] px-3 py-2 text-sm font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--deep-bamboo)] sm:px-4"
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md bg-[var(--dark-forest)] px-2.5 py-2 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--deep-bamboo)] sm:gap-2 sm:px-4 sm:text-sm"
             href={`tel:${restaurantInfo.primaryPhone.replaceAll("-", "")}`}
           >
-            <Phone aria-hidden="true" size={17} />
-            <span className="hidden sm:inline">{restaurantInfo.primaryPhone}</span>
-            <span className="sm:hidden">Call</span>
+            <Phone aria-hidden="true" size={16} />
+            <span className="hidden min-[390px]:inline">{restaurantInfo.primaryPhone}</span>
+            <span className="min-[390px]:hidden">Call</span>
           </a>
           <button
             aria-expanded={mobileMenuOpen}

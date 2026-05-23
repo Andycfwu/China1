@@ -1,4 +1,4 @@
-import type { MenuSection } from "@/lib/menu-data";
+import type { MenuItem, MenuSection } from "@/lib/menu-data";
 
 export type MenuModifierOption = {
   id: string;
@@ -20,6 +20,17 @@ export type CartItemModifier = {
   optionLabel: string;
   priceDeltaCents: number;
 };
+
+export const ITEM_OPTION_GROUP_ID = "item-option";
+
+function normalizeOptionId(label: string, index: number) {
+  const normalized = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || `option-${index + 1}`;
+}
 
 const RICE_AND_LO_MEIN_SIDE_UPGRADES: MenuModifierOption[] = [
   { id: "crabmeat-fried-rice", label: "Crabmeat Fried Rice", priceDeltaCents: 100 },
@@ -165,6 +176,23 @@ export function getModifierGroupsForSection(section: Pick<MenuSection, "id">) {
   return [];
 }
 
+export function getItemOptionGroup(item: Pick<MenuItem, "options">) {
+  if (!item.options?.length) {
+    return null;
+  }
+
+  return {
+    id: ITEM_OPTION_GROUP_ID,
+    label: "Option",
+    required: true,
+    options: item.options.map((option, index) => ({
+      id: option.id ?? normalizeOptionId(option.label, index),
+      label: option.label,
+      priceDeltaCents: 0,
+    })),
+  } satisfies MenuModifierGroup;
+}
+
 export function createCartModifier(
   group: MenuModifierGroup,
   option: MenuModifierOption,
@@ -176,4 +204,13 @@ export function createCartModifier(
     optionLabel: option.label,
     priceDeltaCents: option.priceDeltaCents,
   };
+}
+
+export function formatCartModifierLabel(modifier: CartItemModifier) {
+  const priceSuffix =
+    modifier.priceDeltaCents > 0
+      ? ` +$${(modifier.priceDeltaCents / 100).toFixed(2)}`
+      : "";
+
+  return `${modifier.groupLabel}: ${modifier.optionLabel}${priceSuffix}`;
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   createCartModifier,
+  getItemOptionGroup,
   isLunchSpecialSection,
   isRegularEntreeSection,
   isSpecialCombinationSection,
@@ -103,6 +104,15 @@ function validateOptionalSingleModifier(
   return option
     ? [createCartModifier(group, option)]
     : null;
+}
+
+function validateRequiredSingleModifier(
+  value: unknown,
+  group: MenuModifierGroup,
+) {
+  const modifiers = validateOptionalSingleModifier(value, group);
+
+  return modifiers && modifiers.length === 1 ? modifiers : null;
 }
 
 function createOrderNumber() {
@@ -225,7 +235,14 @@ export async function POST(request: Request) {
 
     let itemModifiers: CartItemModifier[] | null = [];
 
-    if (isSpecialtyPlatterSection(menuMatch.section)) {
+    const itemOptionGroup = getItemOptionGroup(menuMatch.item);
+
+    if (itemOptionGroup) {
+      itemModifiers = validateRequiredSingleModifier(
+        rawItem.modifiers,
+        itemOptionGroup,
+      );
+    } else if (isSpecialtyPlatterSection(menuMatch.section)) {
       itemModifiers = validateOptionalSingleModifier(
         rawItem.modifiers,
         SPECIALTY_PLATTER_SIDE_GROUP,
@@ -249,12 +266,15 @@ export async function POST(request: Request) {
 
     if (!itemModifiers) {
       return jsonError(
-        `Please choose no side upgrade or one valid side upgrade for ${menuMatch.item.name}.`,
+        itemOptionGroup
+          ? `Please choose a valid option for ${menuMatch.item.name}.`
+          : `Please choose no side upgrade or one valid side upgrade for ${menuMatch.item.name}.`,
         400,
       );
     }
 
     if (
+      !itemOptionGroup &&
       !isSpecialtyPlatterSection(menuMatch.section) &&
       !isLunchSpecialSection(menuMatch.section) &&
       !isSpecialCombinationSection(menuMatch.section) &&
