@@ -270,6 +270,26 @@ function textSize(width: 0 | 1, height: 0 | 1) {
   return command(0x1d, 0x21, (width << 4) | height);
 }
 
+function fontA() {
+  return command(0x1b, 0x4d, 0x00);
+}
+
+function printModeNormal() {
+  return command(0x1b, 0x21, 0x00);
+}
+
+function normalText() {
+  return Buffer.concat([printModeNormal(), fontA(), textSize(0, 0), bold(false)]);
+}
+
+function doubleWidthHeightOn() {
+  return textSize(1, 1);
+}
+
+function textSizeNormal() {
+  return textSize(0, 0);
+}
+
 function chineseItemLine(item: PrintableOrder["items"][number]) {
   return (
     getReceiptChineseName(item.menuItemId) ??
@@ -351,17 +371,18 @@ function compactItemModifiers(item: PrintableOrder["items"][number]) {
 
 function printHeader(parts: Buffer[]) {
   parts.push(command(0x1b, 0x40));
+  parts.push(fontA(), printModeNormal());
   parts.push(align("center"), bold(true), textSize(1, 0), text("CHINA 1"));
-  parts.push(textSize(0, 0), bold(false));
+  parts.push(normalText());
   parts.push(text("450 S Broadway, Camden, NJ 08103"));
   parts.push(text("Tel:(856)342-6828"));
   parts.push(text(""));
 }
 
 function printOrderMeta(parts: Buffer[], order: PrintableOrder) {
-  parts.push(align("center"), bold(true), textSize(1, 1));
+  parts.push(normalText(), align("center"), bold(true), textSize(1, 1));
   parts.push(text("Online_Order / Pickup"));
-  parts.push(textSize(0, 0), bold(false), align("left"));
+  parts.push(normalText(), align("left"));
   parts.push(text(line(receiptDateTime(order.createdAt), order.orderNumber)));
   parts.push(text("Server: Online"));
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
@@ -390,21 +411,23 @@ function printItem(
   });
 
   if (chineseLine) {
-    parts.push(bold(true), textSize(0, 1));
+    parts.push(normalText(), bold(true), doubleWidthHeightOn());
     modifierLines(`${codeLabel} ${quantityPrefix}${chineseLine}`).forEach(
       (chineseText) => {
         parts.push(text(chineseText.trimStart()));
       },
     );
-    parts.push(textSize(0, 0), bold(false));
+    parts.push(textSizeNormal(), bold(false));
   }
 
+  parts.push(normalText());
   wrapText(`${codeLabel} ${quantityPrefix}${item.name}`, RECEIPT_WIDTH - 8).forEach(
     (itemLine, lineIndex) => {
       parts.push(text(lineIndex === 0 ? line(itemLine, itemTotal) : itemLine));
     },
   );
 
+  parts.push(normalText());
   compactItemModifiers(item).forEach((modifier) => {
     modifierLines(`[${modifier}]`).forEach((modifierLine) => {
       parts.push(text(modifierLine));
@@ -412,6 +435,7 @@ function printItem(
   });
 
   if (item.notes) {
+    parts.push(normalText());
     modifierLines(`Note: ${item.notes}`).forEach((modifierLine) => {
       parts.push(text(modifierLine));
     });
@@ -420,6 +444,7 @@ function printItem(
 
 function printTotals(parts: Buffer[], order: PrintableOrder) {
   const totals = calculateOrderTotals(order.subtotal);
+  parts.push(normalText());
 
   if (order.specialInstructions) {
     parts.push(text("-".repeat(RECEIPT_WIDTH)));
@@ -431,12 +456,13 @@ function printTotals(parts: Buffer[], order: PrintableOrder) {
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(text(line("Subtotal:", money(totals.subtotal))));
   parts.push(text(line("Tax:", money(totals.salesTax))));
-  parts.push(bold(true), textSize(0, 1));
+  parts.push(fontA(), bold(true), textSize(0, 1));
   parts.push(text(line("Total:", money(totals.total))));
-  parts.push(textSize(0, 0), bold(false));
+  parts.push(normalText());
 }
 
 function printFooter(parts: Buffer[]) {
+  parts.push(normalText());
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(align("center"));
   parts.push(text("Prices subject to change."));
