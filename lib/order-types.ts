@@ -9,6 +9,7 @@ export type OrderStatus = "New" | "Accepted" | "Ready" | "Completed" | "Cancelle
 export type CartItem = {
   cartId: string;
   menuItemId: string;
+  menuItemNumber?: string;
   modifiers?: CartItemModifier[];
   name: string;
   price: string;

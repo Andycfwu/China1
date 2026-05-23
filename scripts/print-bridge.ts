@@ -1,8 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import iconv from "iconv-lite";
 import { Socket } from "node:net";
 import { pathToFileURL } from "node:url";
 import { calculateOrderTotals } from "../lib/pricing.ts";
+import {
+  getReceiptChineseName,
+  normalizeReceiptItemCode,
+} from "../lib/receipt-chinese-names.ts";
 
 dotenv.config({ path: ".env.local" });
 dotenv.config();
@@ -59,6 +64,7 @@ export type PrintableOrder = {
   items: {
     id: string;
     menuItemId: string;
+    menuItemNumber?: string;
     modifiers?: {
       groupId: string;
       groupLabel: string;
@@ -141,7 +147,7 @@ function cleanText(value: string) {
     .replaceAll("’", "'")
     .replaceAll("–", "-")
     .replaceAll("—", "-")
-    .replace(/[^\x20-\x7E\n]/g, "");
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
 }
 
 function receiptDateTime(value: string) {
@@ -173,6 +179,7 @@ function rowToOrder(row: OrderRow): PrintableOrder {
     items: (row.order_items ?? []).map((item) => ({
       id: item.id,
       menuItemId: item.menu_item_id,
+      menuItemNumber: item.menu_item_number,
       modifiers: item.modifiers ?? [],
       name: item.name,
       notes: item.notes ?? "",
@@ -241,7 +248,9 @@ function wrapText(text: string, width = RECEIPT_WIDTH) {
 }
 
 function text(value = "") {
-  return Buffer.from(`${cleanText(value)}\n`, "utf8");
+  // GB18030 works for most ESC/POS printers configured for Chinese output.
+  // If Chinese still renders as boxes/question marks, try GBK for this model.
+  return iconv.encode(`${cleanText(value)}\n`, "gb18030");
 }
 
 function command(...bytes: number[]) {
@@ -261,44 +270,98 @@ function textSize(width: 0 | 1, height: 0 | 1) {
   return command(0x1d, 0x21, (width << 4) | height);
 }
 
-function itemTitleLines(item: PrintableOrder["items"][number], index: number) {
-  const quantityPrefix = item.quantity > 1 ? `${item.quantity} ` : "";
-  const itemLabel = `${index + 1}. ${quantityPrefix}${item.name}`;
+function chineseItemLine(item: PrintableOrder["items"][number]) {
+  return (
+    getReceiptChineseName(item.menuItemId) ??
+    getReceiptChineseName(item.menuItemNumber) ??
+    null
+  );
+}
 
-  return wrapText(itemLabel, RECEIPT_WIDTH);
+function formatReceiptCode(code?: string | null, fallbackIndex = 1) {
+  const normalized = normalizeReceiptItemCode(code ?? "");
+  const looksLikeMenuCode = /^(?:[A-Z]\d+|[A-Z]|\d+)$/.test(normalized);
+  return normalized && looksLikeMenuCode ? `${normalized}.` : `${fallbackIndex}.`;
 }
 
 function modifierLines(value: string) {
   return wrapText(value, RECEIPT_WIDTH - 3).map((lineText) => `   ${lineText}`);
 }
 
-function modifierLabel(
+function compactOptionLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    fried: "锅贴",
+    lg: "大",
+    large: "大",
+    noodle: "面",
+    plain: "净",
+    pt: "小",
+    qt: "大",
+    rice: "饭",
+    sm: "小",
+    small: "小",
+    steamed: "水饺",
+  };
+
+  return labels[normalized] ?? label;
+}
+
+function compactPrice(cents: number) {
+  return cents > 0 ? ` +${money(cents / 100)}` : "";
+}
+
+function compactModifierLabel(
   modifier: NonNullable<PrintableOrder["items"][number]["modifiers"]>[number],
 ) {
   if (modifier.groupId === "item-option") {
-    return modifier.optionLabel;
+    return compactOptionLabel(modifier.optionLabel);
   }
 
-  const priceSuffix =
-    modifier.priceDeltaCents > 0
-      ? ` +${money(modifier.priceDeltaCents / 100)}`
-      : "";
-
-  return `${modifier.groupLabel}: ${modifier.optionLabel}${priceSuffix}`;
+  return `${modifier.groupLabel}: ${modifier.optionLabel}${compactPrice(
+    modifier.priceDeltaCents,
+  )}`;
 }
 
-export function buildReceiptBuffer(order: PrintableOrder) {
-  const totals = calculateOrderTotals(order.subtotal);
-  const parts: Buffer[] = [];
+function selectedSizeModifier(item: PrintableOrder["items"][number]) {
+  if (
+    !item.selectedPriceLabel ||
+    ["Regular", "Base"].includes(item.selectedPriceLabel)
+  ) {
+    return null;
+  }
 
+  return compactOptionLabel(item.selectedPriceLabel);
+}
+
+function compactItemModifiers(item: PrintableOrder["items"][number]) {
+  const labels: string[] = [];
+  const sizeLabel = selectedSizeModifier(item);
+
+  if (sizeLabel) {
+    labels.push(sizeLabel);
+  }
+
+  item.modifiers?.forEach((modifier) => {
+    labels.push(compactModifierLabel(modifier));
+  });
+
+  return labels;
+}
+
+function printHeader(parts: Buffer[]) {
   parts.push(command(0x1b, 0x40));
-  parts.push(align("center"), bold(true), textSize(1, 1), text("CHINA 1"));
+  parts.push(align("center"), bold(true), textSize(1, 0), text("CHINA 1"));
   parts.push(textSize(0, 0), bold(false));
   parts.push(text("450 S Broadway, Camden, NJ 08103"));
-  parts.push(text("Tel:(856)432-6828"));
+  parts.push(text("Tel:(856)342-6828"));
   parts.push(text(""));
-  parts.push(textSize(1, 0), text("Online_Order / Pickup"), textSize(0, 0));
-  parts.push(align("left"));
+}
+
+function printOrderMeta(parts: Buffer[], order: PrintableOrder) {
+  parts.push(align("center"), bold(true), textSize(1, 1));
+  parts.push(text("Online_Order / Pickup"));
+  parts.push(textSize(0, 0), bold(false), align("left"));
   parts.push(text(line(receiptDateTime(order.createdAt), order.orderNumber)));
   parts.push(text("Server: Online"));
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
@@ -307,85 +370,96 @@ export function buildReceiptBuffer(order: PrintableOrder) {
   parts.push(text(`Name: ${order.customerName}`));
   parts.push(text(`Phone: ${order.phone}`));
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
+}
 
-  order.items.forEach((item, index) => {
-    parts.push(bold(true), textSize(0, 0));
-    itemTitleLines(item, index).forEach((itemLine, lineIndex) => {
-      parts.push(
-        text(
-          lineIndex === 0
-            ? line(itemLine, money(item.unitPrice * item.quantity))
-            : itemLine,
-        ),
-      );
-    });
-    parts.push(bold(false));
+function printItem(
+  parts: Buffer[],
+  item: PrintableOrder["items"][number],
+  index: number,
+) {
+  const chineseLine = chineseItemLine(item);
+  const codeLabel = formatReceiptCode(item.menuItemNumber ?? item.menuItemId, index + 1);
+  const quantityPrefix = item.quantity > 1 ? `${item.quantity}x ` : "";
+  const itemTotal = money(item.unitPrice * item.quantity);
 
-    if (item.spicy) {
-      modifierLines("[Hot & Spicy]").forEach((modifierLine) => {
-        parts.push(text(modifierLine));
-      });
-    }
-
-    if (
-      item.selectedPriceLabel &&
-      !["Regular", "Base"].includes(item.selectedPriceLabel)
-    ) {
-      modifierLines(`[Size: ${item.selectedPriceLabel}]`).forEach((modifierLine) => {
-        parts.push(text(modifierLine));
-      });
-    }
-
-    item.modifiers?.forEach((modifier) => {
-      modifierLines(`[${modifierLabel(modifier)}]`).forEach((modifierLine) => {
-        parts.push(text(modifierLine));
-      });
-    });
-
-    if (item.menuItemId.startsWith("L")) {
-      modifierLines("[Includes can soda]").forEach((modifierLine) => {
-        parts.push(text(modifierLine));
-      });
-    }
-
-    if (item.menuItemId.startsWith("C")) {
-      modifierLines("[Includes egg roll]").forEach((modifierLine) => {
-        parts.push(text(modifierLine));
-      });
-    }
-
-    if (item.notes) {
-      modifierLines(`Note: ${item.notes}`).forEach((modifierLine) => {
-        parts.push(text(modifierLine));
-      });
-    }
-
-    if (index < order.items.length - 1) {
-      parts.push(text(""));
-    }
+  console.log("[print-bridge] chinese lookup", {
+    chineseName: chineseLine,
+    menuItemId: item.menuItemId,
+    menuItemNumber: item.menuItemNumber,
+    name: item.name,
   });
+
+  if (chineseLine) {
+    parts.push(bold(true), textSize(0, 1));
+    modifierLines(`${codeLabel} ${quantityPrefix}${chineseLine}`).forEach(
+      (chineseText) => {
+        parts.push(text(chineseText.trimStart()));
+      },
+    );
+    parts.push(textSize(0, 0), bold(false));
+  }
+
+  wrapText(`${codeLabel} ${quantityPrefix}${item.name}`, RECEIPT_WIDTH - 8).forEach(
+    (itemLine, lineIndex) => {
+      parts.push(text(lineIndex === 0 ? line(itemLine, itemTotal) : itemLine));
+    },
+  );
+
+  compactItemModifiers(item).forEach((modifier) => {
+    modifierLines(`[${modifier}]`).forEach((modifierLine) => {
+      parts.push(text(modifierLine));
+    });
+  });
+
+  if (item.notes) {
+    modifierLines(`Note: ${item.notes}`).forEach((modifierLine) => {
+      parts.push(text(modifierLine));
+    });
+  }
+}
+
+function printTotals(parts: Buffer[], order: PrintableOrder) {
+  const totals = calculateOrderTotals(order.subtotal);
 
   if (order.specialInstructions) {
     parts.push(text("-".repeat(RECEIPT_WIDTH)));
-    parts.push(bold(true));
     modifierLines(`Order note: ${order.specialInstructions}`).forEach((modifierLine) => {
       parts.push(text(modifierLine));
     });
-    parts.push(bold(false));
   }
 
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(text(line("Subtotal:", money(totals.subtotal))));
   parts.push(text(line("Tax:", money(totals.salesTax))));
-  parts.push(bold(true));
+  parts.push(bold(true), textSize(0, 1));
   parts.push(text(line("Total:", money(totals.total))));
   parts.push(textSize(0, 0), bold(false));
+}
+
+function printFooter(parts: Buffer[]) {
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(align("center"));
   parts.push(text("Prices subject to change."));
   parts.push(text("Thank You"));
   parts.push(text("\n\n"));
   parts.push(command(0x1d, 0x56, 0x42, 0x00));
+}
+
+export function buildReceiptBuffer(order: PrintableOrder) {
+  const parts: Buffer[] = [];
+
+  printHeader(parts);
+  printOrderMeta(parts, order);
+
+  order.items.forEach((item, index) => {
+    printItem(parts, item, index);
+    if (index < order.items.length - 1) {
+      parts.push(text(""));
+    }
+  });
+
+  printTotals(parts, order);
+  printFooter(parts);
 
   return Buffer.concat(parts);
 }

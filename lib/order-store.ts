@@ -76,6 +76,7 @@ function mapItemRow(row: OrderItemRow): CartItem {
   return {
     cartId: row.id,
     menuItemId: row.menu_item_id,
+    menuItemNumber: row.menu_item_number,
     modifiers: row.modifiers ?? [],
     name: row.name,
     notes: row.notes ?? "",

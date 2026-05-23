@@ -1,10 +1,13 @@
 import type { StoredOrder } from "@/lib/order-types";
-import { isLunchCartItem } from "@/lib/order-availability";
 import {
-  formatCartModifierLabel,
   ITEM_OPTION_GROUP_ID,
+  type CartItemModifier,
 } from "@/lib/menu-modifiers";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
+import {
+  getReceiptChineseName,
+  normalizeReceiptItemCode,
+} from "@/lib/receipt-chinese-names";
 
 function formatReceiptDateTime(value: string) {
   const date = new Date(value);
@@ -32,8 +35,66 @@ function pickupLabel(order: StoredOrder) {
     : `Online_Pickup ${order.pickupTime}`;
 }
 
-function receiptItemLabel(item: StoredOrder["items"][number]) {
-  return item.name;
+function receiptChineseLabel(item: StoredOrder["items"][number]) {
+  return (
+    getReceiptChineseName(item.menuItemId) ??
+    getReceiptChineseName(item.menuItemNumber)
+  );
+}
+
+function formatReceiptCode(code: string | null | undefined, fallbackIndex: number) {
+  const normalized = normalizeReceiptItemCode(code ?? "");
+  const looksLikeMenuCode = /^(?:[A-Z]\d+|[A-Z]|\d+)$/.test(normalized);
+  return normalized && looksLikeMenuCode ? `${normalized}.` : `${fallbackIndex}.`;
+}
+
+function compactOptionLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    fried: "锅贴",
+    lg: "大",
+    large: "大",
+    noodle: "面",
+    plain: "净",
+    pt: "小",
+    qt: "大",
+    rice: "饭",
+    sm: "小",
+    small: "小",
+    steamed: "水饺",
+  };
+
+  return labels[normalized] ?? label;
+}
+
+function compactModifierLabel(modifier: CartItemModifier) {
+  if (modifier.groupId === ITEM_OPTION_GROUP_ID) {
+    return compactOptionLabel(modifier.optionLabel);
+  }
+
+  const priceSuffix =
+    modifier.priceDeltaCents > 0
+      ? ` +${receiptMoney(modifier.priceDeltaCents / 100)}`
+      : "";
+
+  return `${modifier.groupLabel}: ${modifier.optionLabel}${priceSuffix}`;
+}
+
+function compactItemModifiers(item: StoredOrder["items"][number]) {
+  const labels: string[] = [];
+
+  if (
+    item.selectedPriceLabel &&
+    !["Regular", "Base"].includes(item.selectedPriceLabel)
+  ) {
+    labels.push(compactOptionLabel(item.selectedPriceLabel));
+  }
+
+  item.modifiers?.forEach((modifier) => {
+    labels.push(compactModifierLabel(modifier));
+  });
+
+  return labels;
 }
 
 export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
@@ -72,45 +133,46 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
       <div className="receipt-divider" />
 
       <div className="receipt-items">
-        {order.items.map((item, index) => (
-          <div className="receipt-item" key={item.cartId}>
-            <div className="receipt-item-main">
-              <p>
-                {index + 1}. {item.quantity > 1 ? `${item.quantity}x ` : ""}
-                {receiptItemLabel(item)}
-              </p>
-              <span>{receiptMoney(item.unitPrice * item.quantity)}</span>
+        {order.items.map((item, index) => {
+          const codeLabel = formatReceiptCode(
+            item.menuItemNumber ?? item.menuItemId,
+            index + 1,
+          );
+          const quantityPrefix = item.quantity > 1 ? `${item.quantity}x ` : "";
+          const chineseName = receiptChineseLabel(item);
+
+          return (
+            <div className="receipt-item" key={item.cartId}>
+              {chineseName ? (
+                <p className="receipt-item-chinese">
+                  {codeLabel} {quantityPrefix}
+                  {chineseName}
+                </p>
+              ) : null}
+              <div className="receipt-item-main">
+                <p>
+                  {codeLabel} {quantityPrefix}
+                  {item.name}
+                </p>
+                <span>{receiptMoney(item.unitPrice * item.quantity)}</span>
+              </div>
+              {compactItemModifiers(item).map((modifier) => (
+                <p className="receipt-modifier" key={modifier}>
+                  [{modifier}]
+                </p>
+              ))}
+              {item.notes ? (
+                <p className="receipt-modifier">Note: {item.notes}</p>
+              ) : null}
             </div>
-            {item.selectedPriceLabel &&
-            !["Regular", "Base"].includes(item.selectedPriceLabel) ? (
-              <p className="receipt-modifier">[Size: {item.selectedPriceLabel}]</p>
-            ) : null}
-            {item.spicy ? <p className="receipt-modifier">[Hot &amp; Spicy]</p> : null}
-            {item.modifiers?.map((modifier) => (
-              <p
-                className="receipt-modifier"
-                key={`${modifier.groupId}-${modifier.optionId}`}
-              >
-                [{modifier.groupId === ITEM_OPTION_GROUP_ID
-                  ? modifier.optionLabel
-                  : formatCartModifierLabel(modifier)}]
-              </p>
-            ))}
-            {isLunchCartItem(item) ? (
-              <p className="receipt-modifier">[Includes can soda]</p>
-            ) : null}
-            {item.menuItemId.startsWith("C") ? (
-              <p className="receipt-modifier">[Includes egg roll]</p>
-            ) : null}
-            {item.notes ? <p className="receipt-modifier">[{item.notes}]</p> : null}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {order.specialInstructions ? (
         <>
           <div className="receipt-divider" />
-          <p className="receipt-modifier">[{order.specialInstructions}]</p>
+          <p className="receipt-modifier">Order note: {order.specialInstructions}</p>
         </>
       ) : null}
 

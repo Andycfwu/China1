@@ -160,10 +160,10 @@ a {
   }
 
   .receipt-order-type {
-    font-size: 23px;
-    font-weight: 400;
+    font-size: 24px;
+    font-weight: 800;
     line-height: 1.1;
-    margin: 8px 0 6px;
+    margin: 7px 0 5px;
     text-align: center;
     word-break: break-word;
   }
@@ -190,7 +190,7 @@ a {
   .receipt-divider {
     border: 0;
     border-top: 1px solid #000;
-    margin: 6px 0;
+    margin: 5px 0;
   }
 
   .receipt-items {
@@ -198,12 +198,20 @@ a {
   }
 
   .receipt-item {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+  }
+
+  .receipt-item-chinese {
+    font-size: 21px;
+    font-weight: 900;
+    line-height: 1.08;
+    margin-bottom: 1px;
+    overflow-wrap: anywhere;
   }
 
   .receipt-item-main {
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 700;
     line-height: 1.18;
   }
 
@@ -213,8 +221,8 @@ a {
   }
 
   .receipt-item-main span {
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 700;
     line-height: 1.18;
     min-width: 44px;
     text-align: right;
