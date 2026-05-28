@@ -1,0 +1,66 @@
+name: china1
+
+services:
+  # Next.js storefront, admin board, and built-in /api routes.
+  web:
+    build:
+      context: .
+      target: web
+      secrets:
+        - app_env
+    env_file:
+      - .env.local
+    environment:
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    # Restart after process failure and whenever Docker Desktop returns after boot.
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - restaurant
+
+  # Single local worker that polls Supabase and sends ESC/POS data to a LAN printer.
+  print-bridge:
+    build:
+      context: .
+      target: print-bridge
+    env_file:
+      - .env.local
+    environment:
+      NODE_ENV: production
+      PRINT_BRIDGE_HEALTH_PORT: 3101
+    # Bound only to this laptop: this port is diagnostics, not printer traffic.
+    ports:
+      - "127.0.0.1:3101:3101"
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3101/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks:
+      - restaurant
+
+# Both processes use this private Docker network for future internal services
+# (for example Redis or kitchen-display workers). Supabase and the printer are
+# currently reached outbound, so no database or receipt volume is required.
+networks:
+  restaurant:
+    driver: bridge
+
+# Build-only secret: Next needs public browser variables during compilation,
+# but .env.local is never copied into either image filesystem.
+secrets:
+  app_env:
+    file: ./.env.local

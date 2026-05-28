@@ -290,9 +290,3 @@ export function subscribeToOrderChanges(onChange: () => void) {
     void client.removeChannel(channel);
   };
 }
-
-// Future print bridge TODO:
-// A local restaurant computer should run a small service that watches new
-// Supabase orders, formats the same browser receipt content as ESC/POS
-// commands, sends it to PRINTER_HOST=192.168.1.131 on PRINTER_PORT=9100,
-// marks the order printed=true, and supports manual reprint requests.

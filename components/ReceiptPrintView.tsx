@@ -103,7 +103,7 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
   }
 
   const created = formatReceiptDateTime(order.createdAt);
-  const totals = calculateOrderTotals(order.estimatedSubtotal);
+  const totals = calculateOrderTotals(order.estimatedSubtotal, order.paymentMethod);
 
   return (
     <section aria-label="Printable receipt" className="receipt-print">
@@ -126,7 +126,10 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
       <div className="receipt-divider" />
 
       <p className="receipt-line-text">{pickupLabel(order)}</p>
-      <p className="receipt-line-text">Pay at pickup: {order.paymentMethod}</p>
+      <p className="receipt-line-text">Payment: {order.paymentMethod}</p>
+      {order.paymentMethod === "Cash App" ? (
+        <p className="receipt-line-text">Verify Cash App payment manually</p>
+      ) : null}
       <p className="receipt-line-text">Name: {order.customerName}</p>
       <p className="receipt-line-text">Phone: {order.phone}</p>
 
@@ -187,6 +190,12 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
           <span>Tax:</span>
           <span>{receiptMoney(totals.salesTax)}</span>
         </div>
+        {order.paymentMethod === "Cash App" ? (
+          <div className="receipt-total-row">
+            <span>Cash App Fee:</span>
+            <span>{receiptMoney(totals.cashAppFee)}</span>
+          </div>
+        ) : null}
         <div className="receipt-total-row receipt-grand-total">
           <span>Total:</span>
           <span>{receiptMoney(totals.total)}</span>

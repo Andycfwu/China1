@@ -74,24 +74,46 @@ export function formatCurrency(amount: number): string {
 // TODO: Confirm this against the restaurant's accountant/POS settings.
 // New Jersey's standard sales tax is 6.625%, but China 1 currently wants 7%.
 export const TAX_RATE = 0.07;
+export const CASH_APP_FEE_CENTS = 100;
 
-export function calculateOrderTotalCents(subtotalCents: number) {
+type PaymentMethodForTotals = string | null | undefined;
+
+export function isCashAppPayment(paymentMethod?: PaymentMethodForTotals) {
+  return (paymentMethod ?? "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/_/g, "")
+    .includes("cashapp");
+}
+
+export function calculateOrderTotalCents(
+  subtotalCents: number,
+  paymentMethod?: PaymentMethodForTotals,
+) {
   const safeSubtotalCents = Math.max(0, Math.round(subtotalCents));
   const salesTaxCents = Math.round(safeSubtotalCents * TAX_RATE);
-  const totalCents = safeSubtotalCents + salesTaxCents;
+  const cashAppFeeCents = isCashAppPayment(paymentMethod)
+    ? CASH_APP_FEE_CENTS
+    : 0;
+  const totalCents = safeSubtotalCents + salesTaxCents + cashAppFeeCents;
 
   return {
+    cashAppFeeCents,
     salesTaxCents,
     subtotalCents: safeSubtotalCents,
     totalCents,
   };
 }
 
-export function calculateOrderTotals(subtotal: number) {
+export function calculateOrderTotals(
+  subtotal: number,
+  paymentMethod?: PaymentMethodForTotals,
+) {
   const subtotalCents = Math.round(subtotal * 100);
-  const totals = calculateOrderTotalCents(subtotalCents);
+  const totals = calculateOrderTotalCents(subtotalCents, paymentMethod);
 
   return {
+    cashAppFee: totals.cashAppFeeCents / 100,
     salesTax: totals.salesTaxCents / 100,
     subtotal: totals.subtotalCents / 100,
     total: totals.totalCents / 100,

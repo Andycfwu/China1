@@ -2,6 +2,25 @@
 
 Modern pickup-ordering website for China 1 Chinese Food Take Out.
 
+## Cashier Laptop Docker Deployment
+
+The local production deployment runs the Next.js app/API and the automatic
+thermal print bridge as restartable Docker services:
+
+```bash
+docker compose up -d
+```
+
+Stop the system cleanly with:
+
+```bash
+docker compose down
+```
+
+See [docs/LOCAL_DOCKER_DEPLOYMENT.md](./docs/LOCAL_DOCKER_DEPLOYMENT.md) for
+laptop setup, double-click startup scripts, Docker Desktop settings, network
+printer configuration, auto-start, verification, and troubleshooting.
+
 ## Supabase Setup
 
 Add these variables to `.env.local`:
@@ -52,11 +71,10 @@ The current admin page uses a simple client-side PIN gate for MVP testing. Repla
 7. Change the order status and confirm it updates.
 8. Use `Print Receipt` or `Reprint` to test the browser print receipt.
 
-## Printer Integration TODO
+## Printer Integration
 
 Do not connect the thermal printer directly from the website or Vercel. The
-local print bridge should run on one restaurant computer inside the China 1
-network.
+local print bridge runs on one restaurant computer inside the China 1 network.
 
 Add these variables to that local computer's environment:
 
@@ -83,7 +101,7 @@ npm run print-bridge
 
 The bridge:
 
-- watch new orders from Supabase
+- watches new orders from Supabase
 - polls for `printed=false` orders
 - sends ESC/POS receipt commands to `PRINTER_HOST:PRINTER_PORT`
 - marks the order as `printed=true` only after the printer write succeeds

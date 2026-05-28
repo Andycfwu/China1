@@ -115,7 +115,7 @@ const testOrder: PrintableOrder = {
     },
   ],
   orderNumber: "TEST-001",
-  paymentMethod: "Cash",
+  paymentMethod: "Cash App",
   phone: "856-342-6828",
   pickupChoice: "ASAP",
   pickupTime: "ASAP",

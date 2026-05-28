@@ -348,8 +348,9 @@ export function AdminOrders() {
                 Orders
               </h1>
               <p className="mt-3 max-w-3xl text-lg font-semibold leading-8 text-stone-800">
-                Supabase order board for pickup orders. Browser printing is enabled;
-                POS and Ethernet thermal printer integration are not connected yet.
+                Supabase order board for pickup orders. Browser printing is available,
+                and the local print bridge automatically sends new receipts to the
+                network thermal printer.
               </p>
             </div>
             <button
@@ -418,7 +419,7 @@ export function AdminOrders() {
 
         <section className="rounded-2xl border border-dashed border-[var(--warm-border)] bg-[var(--cream-paper)] p-5 shadow-lg shadow-green-950/5 sm:p-6">
           <h2 className="text-2xl font-black text-[var(--deep-bamboo)]">
-            Future Ethernet Printer TODO
+            Local Printing
           </h2>
           <div className="mt-3 grid gap-3 text-sm font-semibold leading-6 text-stone-800 md:grid-cols-2">
             <p>
@@ -426,10 +427,9 @@ export function AdminOrders() {
               production.
             </p>
             <p>
-              TODO: add a local print bridge that watches new Supabase orders,
-              formats this same receipt content as ESC/POS commands, sends it
-              to PRINTER_HOST=192.168.1.131 on PRINTER_PORT=9100, marks orders
-              as printed, and supports manual reprint.
+              Automatic receipts are handled by the local print bridge using
+              the configured network printer. Run only one bridge for live
+              orders to prevent duplicate receipts.
             </p>
           </div>
         </section>
@@ -469,7 +469,10 @@ export function AdminOrders() {
                 key={order.id}
               >
                 {(() => {
-                  const totals = calculateOrderTotals(order.estimatedSubtotal);
+                  const totals = calculateOrderTotals(
+                    order.estimatedSubtotal,
+                    order.paymentMethod,
+                  );
 
                   return (
                     <>
@@ -485,6 +488,11 @@ export function AdminOrders() {
                       <p>Phone: {order.phone}</p>
                       <p>Pickup: {order.pickupTime}</p>
                       <p>Payment: {order.paymentMethod} at pickup</p>
+                      {order.paymentMethod === "Cash App" ? (
+                        <p className="rounded-md bg-amber-50 px-2 py-1 font-black text-amber-800">
+                          Cash App selected - manual payment verification required
+                        </p>
+                      ) : null}
                       <p className="flex items-center gap-1">
                         <Clock size={15} />
                         {formatDateTime(order.createdAt)}
@@ -584,6 +592,12 @@ export function AdminOrders() {
                         <span>Sales Tax</span>
                         <span>{formatCurrency(totals.salesTax)}</span>
                       </div>
+                      {order.paymentMethod === "Cash App" ? (
+                        <div className="flex justify-between gap-3">
+                          <span>Cash App Fee</span>
+                          <span>{formatCurrency(totals.cashAppFee)}</span>
+                        </div>
+                      ) : null}
                       <div className="flex justify-between gap-3 border-t border-[var(--warm-border)] pt-2 text-lg text-[var(--deep-bamboo)]">
                         <span>Estimated total</span>
                         <span>{formatCurrency(totals.total)}</span>

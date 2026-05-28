@@ -18,7 +18,12 @@ import {
 } from "@/lib/order-availability";
 import { formatCartModifierLabel } from "@/lib/menu-modifiers";
 import type { PaymentMethod, PickupTimeChoice, StoredOrder } from "@/lib/order-types";
+import { formatUsPhone, isValidUsPhone } from "@/lib/phone";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
+
+const CASH_APP_CASTAG = "$chinaone1982";
+const CASH_APP_NAME = "Yingzhu Wu";
+const PHONE_ERROR = "Please enter a valid 10-digit phone number.";
 
 export function CheckoutForm() {
   const cart = useCart();
@@ -28,18 +33,22 @@ export function CheckoutForm() {
   const [pickupChoice, setPickupChoice] = useState<PickupTimeChoice>("ASAP");
   const [laterTime, setLaterTime] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Cash");
+  const [cashAppAcknowledged, setCashAppAcknowledged] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [submittedOrder, setSubmittedOrder] = useState<StoredOrder | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [onlineOrderingOpen, setOnlineOrderingOpen] = useState(true);
-  const totals = calculateOrderTotals(cart.estimatedSubtotal);
+  const totals = calculateOrderTotals(cart.estimatedSubtotal, paymentMethod);
   const unavailableLunchItems = useMemo(
     () => getUnavailableLunchCartItems(cart.items, now),
     [cart.items, now],
   );
   const hasUnavailableLunchItems = unavailableLunchItems.length > 0;
+  const phoneValid = isValidUsPhone(phone);
+  const showPhoneError = phone.trim().length > 0 && !phoneValid;
+  const cashAppReady = paymentMethod !== "Cash App" || cashAppAcknowledged;
 
   useEffect(() => {
     let isMounted = true;
@@ -80,15 +89,17 @@ export function CheckoutForm() {
       !hasUnavailableLunchItems &&
       cart.items.length > 0 &&
       customerName.trim().length > 1 &&
-      phone.trim().length >= 7 &&
+      phoneValid &&
+      cashAppReady &&
       (pickupChoice === "ASAP" || laterTime.length > 0),
     [
+      cashAppReady,
       cart.items.length,
       customerName,
       hasUnavailableLunchItems,
       laterTime,
       onlineOrderingOpen,
-      phone,
+      phoneValid,
       pickupChoice,
     ],
   );
@@ -106,6 +117,18 @@ export function CheckoutForm() {
       return;
     }
 
+    if (!phoneValid) {
+      setSubmitError(PHONE_ERROR);
+      return;
+    }
+
+    if (paymentMethod === "Cash App" && !cashAppAcknowledged) {
+      setSubmitError(
+        "Please confirm that you understand Cash App payment is manually verified.",
+      );
+      return;
+    }
+
     if (!canSubmit) {
       return;
     }
@@ -117,7 +140,7 @@ export function CheckoutForm() {
       const response = await fetch("/api/orders", {
         body: JSON.stringify({
           customerName: customerName.trim(),
-          customerPhone: phone.trim(),
+          customerPhone: formatUsPhone(phone),
           items: cart.items.map((item) => ({
             menuItemId: item.menuItemId,
             modifiers: (item.modifiers ?? []).map((modifier) => ({
@@ -172,7 +195,10 @@ export function CheckoutForm() {
           Your order was sent.
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-lg font-semibold leading-8 text-stone-800">
-          Please pay at pickup. Your order number is{" "}
+          {submittedOrder.paymentMethod === "Cash App"
+            ? "Please make sure your Cash App payment has been sent. Staff may verify it manually. "
+            : "Please pay at pickup. "}
+          Your order number is{" "}
           <span className="font-black text-[var(--china-red)]">
             {submittedOrder.orderNumber}
           </span>
@@ -326,7 +352,12 @@ export function CheckoutForm() {
                 <input
                   checked={paymentMethod === method}
                   className="size-4"
-                  onChange={() => setPaymentMethod(method)}
+                  onChange={() => {
+                    setPaymentMethod(method);
+                    if (method === "Cash") {
+                      setCashAppAcknowledged(false);
+                    }
+                  }}
                   type="radio"
                 />
                 {method}
@@ -334,6 +365,47 @@ export function CheckoutForm() {
             ))}
           </div>
         </div>
+
+        {paymentMethod === "Cash App" ? (
+          <div className="mt-4 rounded-xl border border-green-900/15 bg-green-50 p-4">
+            <p className="text-base font-black text-[var(--deep-bamboo)]">
+              Cash App payment
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
+              <div className="space-y-2 text-sm font-bold leading-6 text-stone-800">
+                <p>
+                  Please send the total shown below to {CASH_APP_CASTAG} before
+                  submitting.
+                </p>
+                <p>Cash App name: {CASH_APP_NAME}</p>
+                <p>Cash App payments include a $1.00 fee.</p>
+                <p>Your order total: {formatCurrency(totals.total)}</p>
+                <p>
+                  Include your name or order number in the Cash App note if possible.
+                </p>
+              </div>
+              <div className="rounded-lg border border-dashed border-green-900/25 bg-white p-4 text-center text-xs font-black uppercase leading-5 text-stone-600">
+                {/* TODO: Add a clean Cash App QR image at public/images/cash-app-qr.png. Real Cash App Pay integration should use official Cash App Pay / Square / Stripe payment flow with verified payment status before marking the order paid. */}
+                Cash App QR
+                <br />
+                coming soon
+              </div>
+            </div>
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg bg-white p-3 text-sm font-bold leading-6 text-stone-800">
+              <input
+                checked={cashAppAcknowledged}
+                className="mt-1 size-4"
+                onChange={(event) => setCashAppAcknowledged(event.target.checked)}
+                required
+                type="checkbox"
+              />
+              <span>
+                I understand my Cash App payment must be sent before pickup and
+                staff may confirm it manually.
+              </span>
+            </label>
+          </div>
+        ) : null}
 
         <label className="mt-6 block">
           <span className="text-sm font-black text-stone-800">
@@ -358,6 +430,12 @@ export function CheckoutForm() {
           </div>
         ) : null}
 
+        {showPhoneError ? (
+          <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-black leading-6 text-[var(--china-red)]">
+            {PHONE_ERROR}
+          </p>
+        ) : null}
+
         <button
           className="mt-6 inline-flex min-h-14 w-full items-center justify-center rounded-md bg-[var(--china-red)] px-5 py-3 text-lg font-black text-white transition hover:bg-[var(--dark-red)] disabled:cursor-not-allowed disabled:bg-stone-400"
           disabled={!canSubmit || isSubmitting}
@@ -372,6 +450,9 @@ export function CheckoutForm() {
         ) : null}
         <p className="mt-3 text-sm font-semibold leading-6 text-stone-600">
           Your order was sent. Please pay at pickup. Prices subject to change.
+          {paymentMethod === "Cash App"
+            ? " Cash App payments are verified manually by staff."
+            : ""}
         </p>
       </section>
 
@@ -470,6 +551,12 @@ export function CheckoutForm() {
               <span>Sales Tax</span>
               <span>{formatCurrency(totals.salesTax)}</span>
             </div>
+            {paymentMethod === "Cash App" ? (
+              <div className="flex justify-between gap-3">
+                <span>Cash App Fee</span>
+                <span>{formatCurrency(totals.cashAppFee)}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-3 border-t border-[var(--warm-border)] pt-2 text-xl text-[var(--deep-bamboo)]">
               <span>Estimated Total</span>
               <span>{formatCurrency(totals.total)}</span>
@@ -477,6 +564,9 @@ export function CheckoutForm() {
           </div>
           <p className="mt-3 text-sm font-semibold leading-6 text-stone-600">
             Pay at pickup: Cash or Cash App. Prices subject to change.
+            {paymentMethod === "Cash App"
+              ? " Cash App selected - staff will manually verify payment."
+              : ""}
           </p>
         </div>
       </section>

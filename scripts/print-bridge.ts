@@ -1,18 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import iconv from "iconv-lite";
+import { createServer, type Server } from "node:http";
 import { Socket } from "node:net";
 import { pathToFileURL } from "node:url";
-import { calculateOrderTotals } from "../lib/pricing.ts";
+import { calculateOrderTotals, isCashAppPayment } from "../lib/pricing.ts";
 import {
   getReceiptChineseName,
   normalizeReceiptItemCode,
 } from "../lib/receipt-chinese-names.ts";
 
-dotenv.config({ path: ".env.local" });
-dotenv.config();
+dotenv.config({ path: ".env.local", quiet: true });
+dotenv.config({ quiet: true });
 
-type PaymentMethod = "Cash" | "Cash App";
+type PaymentMethod = string;
 type PickupChoice = "ASAP" | "Later";
 
 type OrderItemRow = {
@@ -92,9 +93,12 @@ export type PrintableOrder = {
 
 const DEFAULT_PRINTER_HOST = "192.168.1.131";
 const DEFAULT_PRINTER_PORT = 9100;
+const DEFAULT_HEALTH_PORT = 3101;
 const POLL_INTERVAL_MS = 10_000;
 const RECEIPT_WIDTH = 42;
 const processingOrderIds = new Set<string>();
+let lastSuccessfulPollAt: string | null = null;
+let lastPollError: string | null = null;
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -120,6 +124,10 @@ function printerPort() {
       process.env.THERMAL_PRINTER_PORT ??
       DEFAULT_PRINTER_PORT,
   );
+}
+
+function healthPort() {
+  return Number(process.env.PRINT_BRIDGE_HEALTH_PORT ?? DEFAULT_HEALTH_PORT);
 }
 
 function createServiceClient() {
@@ -387,7 +395,10 @@ function printOrderMeta(parts: Buffer[], order: PrintableOrder) {
   parts.push(text("Server: Online"));
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(text(pickupLabel(order)));
-  parts.push(text(`Pay at pickup: ${order.paymentMethod}`));
+  parts.push(text(`Payment: ${order.paymentMethod}`));
+  if (isCashAppPayment(order.paymentMethod)) {
+  parts.push(text("Verify Cash App payment manually"));
+  }
   parts.push(text(`Name: ${order.customerName}`));
   parts.push(text(`Phone: ${order.phone}`));
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
@@ -443,7 +454,7 @@ function printItem(
 }
 
 function printTotals(parts: Buffer[], order: PrintableOrder) {
-  const totals = calculateOrderTotals(order.subtotal);
+  const totals = calculateOrderTotals(order.subtotal, order.paymentMethod);
   parts.push(normalText());
 
   if (order.specialInstructions) {
@@ -456,6 +467,9 @@ function printTotals(parts: Buffer[], order: PrintableOrder) {
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
   parts.push(text(line("Subtotal:", money(totals.subtotal))));
   parts.push(text(line("Tax:", money(totals.salesTax))));
+  if (totals.cashAppFee > 0) {
+  parts.push(text(line("Cash App Fee:", money(totals.cashAppFee))));
+  }
   parts.push(fontA(), bold(true), textSize(0, 1));
   parts.push(text(line("Total:", money(totals.total))));
   parts.push(normalText());
@@ -594,24 +608,76 @@ async function pollOnce() {
   }
 }
 
+async function runPollCycle() {
+  try {
+    await pollOnce();
+    lastSuccessfulPollAt = new Date().toISOString();
+    lastPollError = null;
+  } catch (error) {
+    lastPollError = error instanceof Error ? error.message : "Unknown polling error";
+    throw error;
+  }
+}
+
+function startHealthServer() {
+  const server = createServer((request, response) => {
+    if (request.url !== "/health") {
+      response.writeHead(404).end("Not found\n");
+      return;
+    }
+
+    const status = lastPollError ? 503 : 200;
+    response.writeHead(status, { "Content-Type": "application/json" });
+    response.end(
+      JSON.stringify({
+        service: "china1-print-bridge",
+        status: status === 200 ? "ok" : "poll-error",
+        printer: `${printerHost()}:${printerPort()}`,
+        lastSuccessfulPollAt,
+        lastPollError,
+      }),
+    );
+  });
+
+  server.listen(healthPort(), "0.0.0.0", () => {
+    console.log(`[print-bridge] Health endpoint: http://0.0.0.0:${healthPort()}/health`);
+  });
+
+  return server;
+}
+
 export async function runPrintBridge() {
   console.log("[print-bridge] China 1 thermal print bridge starting.");
   console.log(`[print-bridge] Printer: ${printerHost()}:${printerPort()}`);
   console.log("[print-bridge] Run this on only one restaurant computer at a time.");
 
-  await pollOnce();
+  const healthServer = startHealthServer();
+  await runPollCycle();
 
-  windowlessInterval(async () => {
+  const interval = windowlessInterval(async () => {
     try {
-      await pollOnce();
+      await runPollCycle();
     } catch (error) {
       console.error("[print-bridge] Poll failed.", error);
     }
   }, POLL_INTERVAL_MS);
+
+  registerShutdownHandlers(interval, healthServer);
 }
 
 function windowlessInterval(callback: () => void, ms: number) {
   return setInterval(callback, ms);
+}
+
+function registerShutdownHandlers(interval: NodeJS.Timeout, server: Server) {
+  const shutdown = (signal: string) => {
+    console.log(`[print-bridge] ${signal} received; stopping cleanly.`);
+    clearInterval(interval);
+    server.close(() => process.exit(0));
+  };
+
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

@@ -20,6 +20,7 @@ import {
   LUNCH_SPECIAL_HOURS_MESSAGE,
 } from "@/lib/order-availability";
 import type { PaymentMethod, PickupTimeChoice } from "@/lib/order-types";
+import { formatUsPhone, isValidUsPhone } from "@/lib/phone";
 import { calculateOrderTotalCents, parsePriceOptions } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
@@ -119,12 +120,6 @@ function createOrderNumber() {
   return `C1-${Date.now().toString().slice(-6)}`;
 }
 
-function validatePhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-
-  return /^[\d\s\-().]+$/.test(phone) && digits.length >= 7 && digits.length <= 15;
-}
-
 function hasExplicitSizeOptions(
   options: ReturnType<typeof parsePriceOptions>,
 ) {
@@ -169,9 +164,11 @@ export async function POST(request: Request) {
     return jsonError("Customer name is required.", 400);
   }
 
-  if (!customerPhone || !validatePhone(customerPhone)) {
-    return jsonError("A valid phone number is required.", 400);
+  if (!customerPhone || !isValidUsPhone(customerPhone)) {
+    return jsonError("Please enter a valid 10-digit phone number.", 400);
   }
+
+  const normalizedCustomerPhone = formatUsPhone(customerPhone);
 
   if (paymentMethod !== "Cash" && paymentMethod !== "Cash App") {
     return jsonError("Payment method must be Cash or Cash App.", 400);
@@ -343,16 +340,16 @@ export async function POST(request: Request) {
     });
   }
 
-  const totals = calculateOrderTotalCents(subtotalCents);
   const orderNumber = createOrderNumber();
   const normalizedPickupType = pickupType as PickupTimeChoice;
   const normalizedPaymentMethod = paymentMethod as PaymentMethod;
+  const totals = calculateOrderTotalCents(subtotalCents, normalizedPaymentMethod);
 
   const { data: orderRow, error: orderError } = await supabase
     .from("orders")
     .insert({
       customer_name: customerName,
-      customer_phone: customerPhone,
+      customer_phone: normalizedCustomerPhone,
       order_number: orderNumber,
       payment_method: normalizedPaymentMethod,
       pickup_time: normalizedPickupType === "ASAP" ? "ASAP" : pickupTime,
@@ -403,6 +400,7 @@ export async function POST(request: Request) {
       items: validatedItems.map((item, index) => ({
         cartId: `${orderRow.id}-${index}`,
         menuItemId: item.menuItemId,
+        menuItemNumber: item.menuItemNumber,
         modifiers: item.modifiers,
         name: item.name,
         notes: item.notes,
@@ -416,7 +414,7 @@ export async function POST(request: Request) {
       })),
       orderNumber,
       paymentMethod: normalizedPaymentMethod,
-      phone: customerPhone,
+      phone: normalizedCustomerPhone,
       pickupChoice: normalizedPickupType,
       pickupTime: normalizedPickupType === "ASAP" ? "ASAP" : pickupTime,
       printed: false,
@@ -425,6 +423,7 @@ export async function POST(request: Request) {
       updatedAt: orderRow.updated_at,
     },
     totals: {
+      cashAppFeeCents: totals.cashAppFeeCents,
       estimatedTotalCents: totals.totalCents,
       salesTaxCents: totals.salesTaxCents,
       subtotalCents: totals.subtotalCents,
