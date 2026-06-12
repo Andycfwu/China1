@@ -58,7 +58,28 @@ export function isItemCurrentlyAvailable(
   return !isLunchSection(section) || isLunchSpecialAvailable(date);
 }
 
-export function findMenuItemWithSection(menuItemId: string) {
+function parseMenuItemKey(menuItemKey: string) {
+  const [sectionId, itemId] = menuItemKey.split(":");
+
+  return sectionId && itemId ? { itemId, sectionId } : null;
+}
+
+export function findMenuItemWithSection(menuItemId: string, menuItemKey = "") {
+  const parsedKey = parseMenuItemKey(menuItemKey);
+
+  if (parsedKey) {
+    const section = orderableMenuSections.find(
+      (menuSection) => menuSection.id === parsedKey.sectionId,
+    );
+    const item = section?.items.find(
+      (menuItem) => menuItem.id === parsedKey.itemId && menuItem.id === menuItemId,
+    );
+
+    if (section && item) {
+      return { item, section };
+    }
+  }
+
   for (const section of orderableMenuSections) {
     const item = section.items.find((menuItem) => menuItem.id === menuItemId);
 
@@ -72,14 +93,15 @@ export function findMenuItemWithSection(menuItemId: string) {
 
 const lunchSection = menuSections.find(isLunchSection);
 const lunchItemIds = new Set(lunchSection?.items.map((item) => item.id) ?? []);
-const lunchItemNames = new Set(
-  lunchSection?.items.map((item) => item.name.toLowerCase()) ?? [],
-);
 
-export function isLunchCartItem(item: Pick<CartItem, "menuItemId" | "name">) {
+export function isLunchCartItem(
+  item: Pick<CartItem, "menuItemId" | "menuItemKey">,
+) {
+  const parsedKey = parseMenuItemKey(item.menuItemKey ?? "");
+
   return (
-    lunchItemIds.has(item.menuItemId) ||
-    lunchItemNames.has(item.name.toLowerCase())
+    parsedKey?.sectionId === "lunch-special" ||
+    (!parsedKey && lunchItemIds.has(item.menuItemId))
   );
 }
 

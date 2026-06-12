@@ -143,6 +143,7 @@ export function CheckoutForm() {
           customerPhone: formatUsPhone(phone),
           items: cart.items.map((item) => ({
             menuItemId: item.menuItemId,
+            menuItemKey: item.menuItemKey,
             modifiers: (item.modifiers ?? []).map((modifier) => ({
               groupId: modifier.groupId,
               optionId: modifier.optionId,

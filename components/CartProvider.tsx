@@ -26,6 +26,7 @@ type CartContextValue = {
     item: MenuItem,
     priceOption?: PriceOption,
     modifiers?: CartItemModifier[],
+    menuItemKey?: string,
   ) => void;
   updateQuantity: (cartId: string, quantity: number) => void;
   updateNotes: (cartId: string, notes: string) => void;
@@ -64,6 +65,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     item: MenuItem,
     priceOption?: PriceOption,
     modifiers: CartItemModifier[] = [],
+    menuItemKey?: string,
   ) => {
     setItems((currentItems) => {
       const selectedOption = priceOption ?? parsePriceOptions(item.price)[0];
@@ -79,6 +81,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const existingItem = currentItems.find(
         (cartItem) =>
           cartItem.menuItemId === item.id &&
+          (cartItem.menuItemKey ?? "") === (menuItemKey ?? "") &&
           cartItem.name === item.name &&
           (cartItem.selectedPriceId ?? "regular") === selectedPriceId &&
           JSON.stringify(
@@ -101,6 +104,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const cartItem: CartItem = {
         cartId: createCartId(),
         menuItemId: item.id,
+        menuItemKey,
         modifiers,
         name: item.name,
         notes: "",

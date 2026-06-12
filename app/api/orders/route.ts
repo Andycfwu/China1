@@ -30,6 +30,7 @@ const ONLINE_ORDERING_SETTING_KEY = "online_ordering_open";
 
 type OrderRequestItem = {
   menuItemId?: unknown;
+  menuItemKey?: unknown;
   modifiers?: unknown;
   quantity?: unknown;
   notes?: unknown;
@@ -204,10 +205,11 @@ export async function POST(request: Request) {
     }
 
     const menuItemId = asTrimmedString(rawItem.menuItemId);
+    const menuItemKey = asTrimmedString(rawItem.menuItemKey);
     const quantity = Number(rawItem.quantity);
     const notes = asTrimmedString(rawItem.notes);
     const selectedPriceId = asTrimmedString(rawItem.selectedPriceId);
-    const menuMatch = findMenuItemWithSection(menuItemId);
+    const menuMatch = findMenuItemWithSection(menuItemId, menuItemKey);
 
     if (!menuMatch) {
       return jsonError("One or more menu items are no longer available.", 400);
@@ -326,6 +328,7 @@ export async function POST(request: Request) {
     subtotalCents += finalUnitPriceCents * quantity;
     validatedItems.push({
       menuItemId,
+      menuItemKey: `${menuMatch.section.id}:${menuMatch.item.id}`,
       menuItemNumber: menuMatch.item.displayId ?? (menuMatch.item.hideId ? "" : menuItemId),
       modifiers: itemModifiers,
       name: menuMatch.item.name,
@@ -400,6 +403,7 @@ export async function POST(request: Request) {
       items: validatedItems.map((item, index) => ({
         cartId: `${orderRow.id}-${index}`,
         menuItemId: item.menuItemId,
+        menuItemKey: item.menuItemKey,
         menuItemNumber: item.menuItemNumber,
         modifiers: item.modifiers,
         name: item.name,

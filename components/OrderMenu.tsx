@@ -65,6 +65,10 @@ function hasExplicitSizeOptions(options: PriceOption[]) {
   return options.some((option) => ["sm", "lg"].includes(option.id));
 }
 
+function menuItemKey(section: Pick<MenuSectionType, "id">, item: MenuItemType) {
+  return `${section.id}:${item.id}`;
+}
+
 export function OrderMenu({ sections }: OrderMenuProps) {
   const cart = useCart();
 
@@ -157,6 +161,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
 
   function getItemQuantity(
     item: MenuItemType,
+    key: string,
     priceOption?: PriceOption,
     modifiers: CartItemModifier[] = [],
   ) {
@@ -168,6 +173,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
         (cartItem) =>
           cartItem.menuItemId === item.id && cartItem.name === item.name,
       )
+      .filter((cartItem) => (cartItem.menuItemKey ?? "") === key)
       .filter((cartItem) =>
         priceOption
           ? (cartItem.selectedPriceId ?? "regular") === priceOption.id
@@ -579,6 +585,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
 
                         <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
                           {section.items.map((item) => {
+                            const itemKey = menuItemKey(section, item);
                             const rawPriceOptions = parsePriceOptions(item.price);
                             const specialtyPlatter =
                               isSpecialtyPlatterSection(section);
@@ -605,7 +612,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const modifierGroup = modifierGroups[0];
                             const modifierRequired = Boolean(modifierGroup?.required);
                             const selectedModifierOptionId =
-                              selectedModifierByItemId[item.id];
+                              selectedModifierByItemId[itemKey];
                             const selectedModifierOption =
                               modifierGroup?.options.find(
                                 (option) =>
@@ -622,7 +629,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                 : [];
                             const hasMultiplePrices = priceOptions.length > 1;
                             const selectedPriceId =
-                              selectedPriceByItemId[item.id] ??
+                              selectedPriceByItemId[itemKey] ??
                               priceOptions[0]?.id;
                             const selectedPriceOption =
                               priceOptions.find(
@@ -630,6 +637,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                               ) ?? priceOptions[0];
                             const quantityInCart = getItemQuantity(
                               item,
+                              itemKey,
                               selectedPriceOption,
                               selectedModifiers,
                             );
@@ -709,7 +717,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                               setSelectedModifierByItemId(
                                                 (current) => ({
                                                   ...current,
-                                                  [item.id]: event.target.value,
+                                                  [itemKey]: event.target.value,
                                                 }),
                                               )
                                             }
@@ -773,7 +781,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                                 setSelectedPriceByItemId(
                                                   (current) => ({
                                                     ...current,
-                                                    [item.id]: option.id,
+                                                    [itemKey]: option.id,
                                                   }),
                                                 )
                                               }
@@ -828,6 +836,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                             item,
                                             selectedPriceOption,
                                             selectedModifiers,
+                                            itemKey,
                                           );
                                         }
                                       }}
