@@ -5,13 +5,11 @@ import {
   isLunchSpecialSection,
   isRegularEntreeSection,
   isSpecialCombinationSection,
-  isSpecialtyPlatterSection,
   LUNCH_SPECIAL_SIDE_GROUP,
   REGULAR_ENTREE_SIDE_GROUP,
   SPECIAL_COMBINATION_SIDE_GROUP,
   type CartItemModifier,
   type MenuModifierGroup,
-  SPECIALTY_PLATTER_SIDE_GROUP,
 } from "@/lib/menu-modifiers";
 import {
   findMenuItemWithSection,
@@ -119,12 +117,6 @@ function validateRequiredSingleModifier(
 
 function createOrderNumber() {
   return `C1-${Date.now().toString().slice(-6)}`;
-}
-
-function hasExplicitSizeOptions(
-  options: ReturnType<typeof parsePriceOptions>,
-) {
-  return options.some((option) => ["sm", "lg"].includes(option.id));
 }
 
 export async function POST(request: Request) {
@@ -241,11 +233,6 @@ export async function POST(request: Request) {
         rawItem.modifiers,
         itemOptionGroup,
       );
-    } else if (isSpecialtyPlatterSection(menuMatch.section)) {
-      itemModifiers = validateOptionalSingleModifier(
-        rawItem.modifiers,
-        SPECIALTY_PLATTER_SIDE_GROUP,
-      );
     } else if (isLunchSpecialSection(menuMatch.section)) {
       itemModifiers = validateOptionalSingleModifier(
         rawItem.modifiers,
@@ -274,7 +261,6 @@ export async function POST(request: Request) {
 
     if (
       !itemOptionGroup &&
-      !isSpecialtyPlatterSection(menuMatch.section) &&
       !isLunchSpecialSection(menuMatch.section) &&
       !isSpecialCombinationSection(menuMatch.section) &&
       !isRegularEntreeSection(menuMatch.section)
@@ -288,22 +274,10 @@ export async function POST(request: Request) {
       }
     }
 
-    const specialtyPlatter = isSpecialtyPlatterSection(menuMatch.section);
     const rawPriceOptions = parsePriceOptions(menuMatch.item.price);
-    const priceOptions = specialtyPlatter
-      ? hasExplicitSizeOptions(rawPriceOptions)
-        ? rawPriceOptions
-        : [
-          {
-            ...rawPriceOptions[0],
-            id: "base",
-            label: "Base",
-          },
-        ]
-      : rawPriceOptions;
+    const priceOptions = rawPriceOptions;
     const selectedPriceOption =
-      priceOptions.length === 1 ||
-      (specialtyPlatter && !hasExplicitSizeOptions(rawPriceOptions))
+      priceOptions.length === 1
         ? priceOptions[0]
         : priceOptions.find((option) => option.id === selectedPriceId);
 

@@ -22,7 +22,6 @@ import {
   isLunchSpecialSection,
   isRegularEntreeSection,
   isSpecialCombinationSection,
-  isSpecialtyPlatterSection,
 } from "@/lib/menu-modifiers";
 import type { CartItemModifier } from "@/lib/menu-modifiers";
 import { restaurantInfo } from "@/lib/menu-data";
@@ -59,10 +58,6 @@ function itemSearchText(item: MenuItemType) {
     item.description ?? ""
   } ${item.options?.map((option) => option.label).join(" ") ?? ""
   }`.toLowerCase();
-}
-
-function hasExplicitSizeOptions(options: PriceOption[]) {
-  return options.some((option) => ["sm", "lg"].includes(option.id));
 }
 
 function menuItemKey(section: Pick<MenuSectionType, "id">, item: MenuItemType) {
@@ -587,24 +582,12 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                           {section.items.map((item) => {
                             const itemKey = menuItemKey(section, item);
                             const rawPriceOptions = parsePriceOptions(item.price);
-                            const specialtyPlatter =
-                              isSpecialtyPlatterSection(section);
                             const lunchSpecial = isLunchSpecialSection(section);
                             const specialCombination =
                               isSpecialCombinationSection(section);
                             const regularEntree =
                               isRegularEntreeSection(section);
-                            const priceOptions = specialtyPlatter
-                              ? hasExplicitSizeOptions(rawPriceOptions)
-                                ? rawPriceOptions
-                                : [
-                                  {
-                                    ...rawPriceOptions[0],
-                                    id: "base",
-                                    label: "Base",
-                                  },
-                                ]
-                              : rawPriceOptions;
+                            const priceOptions = rawPriceOptions;
                             const itemOptionGroup = getItemOptionGroup(item);
                             const modifierGroups = itemOptionGroup
                               ? [itemOptionGroup]

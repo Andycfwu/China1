@@ -148,7 +148,6 @@ export function isRegularEntreeSection(section: Pick<MenuSection, "id">) {
     "pork",
     "egg-foo-young",
     "diet-menu",
-    "chow-mei-fun",
     "chow-mein-chop-suey",
     "moo-shu",
     "sweet-sour",
@@ -157,10 +156,6 @@ export function isRegularEntreeSection(section: Pick<MenuSection, "id">) {
 }
 
 export function getModifierGroupsForSection(section: Pick<MenuSection, "id">) {
-  if (isSpecialtyPlatterSection(section)) {
-    return [SPECIALTY_PLATTER_SIDE_GROUP];
-  }
-
   if (isLunchSpecialSection(section)) {
     return [LUNCH_SPECIAL_SIDE_GROUP];
   }
