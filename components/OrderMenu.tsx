@@ -146,6 +146,35 @@ export function OrderMenu({ sections }: OrderMenuProps) {
     return () => window.clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hashCategory = window.location.hash
+      .replace("#", "")
+      .replace(/^section-/, "");
+    const requestedCategory =
+      params.get("category") ?? params.get("family") ?? hashCategory;
+
+    if (
+      !requestedCategory ||
+      !sections.some((section) => section.id === requestedCategory)
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setSelectedCategory(requestedCategory);
+      setOpenSections((current) => ({
+        ...current,
+        [requestedCategory]: true,
+      }));
+      document
+        .getElementById(`section-${requestedCategory}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+
+    return () => window.clearTimeout(timeout);
+  }, [sections]);
+
   function modifiersKey(modifiers: CartItemModifier[]) {
     return JSON.stringify(
       modifiers.map((modifier) => ({
