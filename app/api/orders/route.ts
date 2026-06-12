@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import {
   createCartModifier,
   getItemOptionGroup,
-  isLunchSpecialSection,
-  isRegularEntreeSection,
-  isSpecialCombinationSection,
-  LUNCH_SPECIAL_SIDE_GROUP,
-  REGULAR_ENTREE_SIDE_GROUP,
-  SPECIAL_COMBINATION_SIDE_GROUP,
+  getModifierGroupsForItem,
   type CartItemModifier,
   type MenuModifierGroup,
 } from "@/lib/menu-modifiers";
@@ -69,50 +64,64 @@ function asTrimmedString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function validateOptionalSingleModifier(
+function validateModifierGroups(
   value: unknown,
-  group: MenuModifierGroup,
+  groups: MenuModifierGroup[],
 ) {
-  if (value === undefined || value === null) {
-    return [];
-  }
+  const rawModifiers =
+    value === undefined || value === null
+      ? []
+      : Array.isArray(value)
+        ? value
+        : null;
 
-  if (!Array.isArray(value)) {
+  if (!rawModifiers) {
     return null;
   }
 
-  if (value.length === 0) {
-    return [];
+  if (groups.length === 0) {
+    return rawModifiers.length === 0 ? [] : null;
   }
 
-  if (value.length !== 1) {
-    return null;
+  const modifiersByGroup = new Map<string, unknown>();
+
+  for (const rawModifier of rawModifiers) {
+    const modifier = rawModifier as { groupId?: unknown; optionId?: unknown };
+    const groupId = asTrimmedString(modifier.groupId);
+
+    if (!groupId || modifiersByGroup.has(groupId)) {
+      return null;
+    }
+
+    modifiersByGroup.set(groupId, modifier.optionId);
   }
 
-  const modifier = value[0] as { groupId?: unknown; optionId?: unknown };
-  const groupId = asTrimmedString(modifier.groupId);
-  const optionId = asTrimmedString(modifier.optionId);
+  const validatedModifiers: CartItemModifier[] = [];
 
-  if (groupId !== group.id) {
-    return null;
+  for (const group of groups) {
+    const optionId = modifiersByGroup.get(group.id);
+
+    if (!optionId) {
+      if (group.required) {
+        return null;
+      }
+
+      continue;
+    }
+
+    const option = group.options.find(
+      (groupOption) => groupOption.id === asTrimmedString(optionId),
+    );
+
+    if (!option) {
+      return null;
+    }
+
+    validatedModifiers.push(createCartModifier(group, option));
+    modifiersByGroup.delete(group.id);
   }
 
-  const option = group.options.find(
-    (sideOption) => sideOption.id === optionId,
-  );
-
-  return option
-    ? [createCartModifier(group, option)]
-    : null;
-}
-
-function validateRequiredSingleModifier(
-  value: unknown,
-  group: MenuModifierGroup,
-) {
-  const modifiers = validateOptionalSingleModifier(value, group);
-
-  return modifiers && modifiers.length === 1 ? modifiers : null;
+  return modifiersByGroup.size === 0 ? validatedModifiers : null;
 }
 
 function createOrderNumber() {
@@ -224,54 +233,22 @@ export async function POST(request: Request) {
       );
     }
 
-    let itemModifiers: CartItemModifier[] | null = [];
-
     const itemOptionGroup = getItemOptionGroup(menuMatch.item);
-
-    if (itemOptionGroup) {
-      itemModifiers = validateRequiredSingleModifier(
-        rawItem.modifiers,
-        itemOptionGroup,
-      );
-    } else if (isLunchSpecialSection(menuMatch.section)) {
-      itemModifiers = validateOptionalSingleModifier(
-        rawItem.modifiers,
-        LUNCH_SPECIAL_SIDE_GROUP,
-      );
-    } else if (isSpecialCombinationSection(menuMatch.section)) {
-      itemModifiers = validateOptionalSingleModifier(
-        rawItem.modifiers,
-        SPECIAL_COMBINATION_SIDE_GROUP,
-      );
-    } else if (isRegularEntreeSection(menuMatch.section)) {
-      itemModifiers = validateOptionalSingleModifier(
-        rawItem.modifiers,
-        REGULAR_ENTREE_SIDE_GROUP,
-      );
-    }
+    const modifierGroups = itemOptionGroup
+      ? [itemOptionGroup]
+      : getModifierGroupsForItem(menuMatch.section, menuMatch.item);
+    const itemModifiers = validateModifierGroups(
+      rawItem.modifiers,
+      modifierGroups,
+    );
 
     if (!itemModifiers) {
       return jsonError(
         itemOptionGroup
           ? `Please choose a valid option for ${menuMatch.item.name}.`
-          : `Please choose no side upgrade or one valid side upgrade for ${menuMatch.item.name}.`,
+          : `Please choose valid options for ${menuMatch.item.name}.`,
         400,
       );
-    }
-
-    if (
-      !itemOptionGroup &&
-      !isLunchSpecialSection(menuMatch.section) &&
-      !isSpecialCombinationSection(menuMatch.section) &&
-      !isRegularEntreeSection(menuMatch.section)
-    ) {
-      const modifiers = Array.isArray(rawItem.modifiers)
-        ? rawItem.modifiers
-        : [];
-
-      if (modifiers.length > 0) {
-        return jsonError("Modifiers are not available for this item.", 400);
-      }
     }
 
     const rawPriceOptions = parsePriceOptions(menuMatch.item.price);

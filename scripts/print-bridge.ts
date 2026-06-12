@@ -308,7 +308,7 @@ function chineseItemLine(item: PrintableOrder["items"][number]) {
 
 function formatReceiptCode(code?: string | null, fallbackIndex = 1) {
   const normalized = normalizeReceiptItemCode(code ?? "");
-  const looksLikeMenuCode = /^(?:[A-Z]\d+|[A-Z]|\d+)$/.test(normalized);
+  const looksLikeMenuCode = /^(?:[A-Z]+-[A-Z0-9]+|[A-Z]\d+|[A-Z]|\d+)$/.test(normalized);
   return normalized && looksLikeMenuCode ? `${normalized}.` : `${fallbackIndex}.`;
 }
 

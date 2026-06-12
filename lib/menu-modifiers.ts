@@ -79,6 +79,71 @@ const REGULAR_ENTREE_SIDE_UPGRADES: MenuModifierOption[] = [
   },
 ];
 
+const FAMILY_SPECIAL_FRIED_RICE_OPTIONS: MenuModifierOption[] = [
+  { id: "plain-fried-rice", label: "Plain Fried Rice", priceDeltaCents: 0 },
+  { id: "vegetable-fried-rice", label: "Vegetable Fried Rice", priceDeltaCents: 0 },
+  { id: "roast-pork-fried-rice", label: "Roast Pork Fried Rice", priceDeltaCents: 0 },
+  { id: "chicken-fried-rice", label: "Chicken Fried Rice", priceDeltaCents: 0 },
+  { id: "beef-fried-rice", label: "Beef Fried Rice", priceDeltaCents: 0 },
+  { id: "shrimp-fried-rice", label: "Shrimp Fried Rice", priceDeltaCents: 0 },
+  {
+    id: "house-special-fried-rice",
+    label: "House Special Fried Rice",
+    priceDeltaCents: 0,
+  },
+  { id: "krabmeat-fried-rice", label: "Krabmeat Fried Rice", priceDeltaCents: 0 },
+];
+
+const FAMILY_SPECIAL_SOUP_OPTIONS: MenuModifierOption[] = [
+  { id: "wonton-soup", label: "Wonton Soup", priceDeltaCents: 0 },
+  { id: "egg-drop-soup", label: "Egg Drop Soup", priceDeltaCents: 0 },
+  { id: "hot-sour-soup", label: "Hot & Sour Soup", priceDeltaCents: 0 },
+];
+
+const FAMILY_SPECIAL_LO_MEIN_OPTIONS: MenuModifierOption[] = [
+  { id: "plain-lo-mein", label: "Plain Lo Mein", priceDeltaCents: 0 },
+  { id: "vegetable-lo-mein", label: "Vegetable Lo Mein", priceDeltaCents: 0 },
+  { id: "roast-pork-lo-mein", label: "Roast Pork Lo Mein", priceDeltaCents: 0 },
+  { id: "chicken-lo-mein", label: "Chicken Lo Mein", priceDeltaCents: 0 },
+  { id: "beef-lo-mein", label: "Beef Lo Mein", priceDeltaCents: 0 },
+  { id: "shrimp-lo-mein", label: "Shrimp Lo Mein", priceDeltaCents: 0 },
+  { id: "house-special-lo-mein", label: "House Special Lo Mein", priceDeltaCents: 0 },
+];
+
+const FAMILY_SPECIAL_A_ENTREE_OPTIONS: MenuModifierOption[] = [
+  { id: "general-tsos-chicken", label: "General Tso's Chicken", priceDeltaCents: 0 },
+  { id: "sesame-chicken", label: "Sesame Chicken", priceDeltaCents: 0 },
+  { id: "bourbon-chicken", label: "Bourbon Chicken", priceDeltaCents: 0 },
+  { id: "popcorn-chicken", label: "Popcorn Chicken", priceDeltaCents: 0 },
+];
+
+const FAMILY_SPECIAL_B_ENTREE_OPTIONS: MenuModifierOption[] = [
+  { id: "honey-chicken", label: "Honey Chicken", priceDeltaCents: 0 },
+  { id: "sweet-sour-chicken", label: "Sweet & Sour Chicken", priceDeltaCents: 0 },
+  { id: "sesame-chicken", label: "Sesame Chicken", priceDeltaCents: 0 },
+  { id: "general-tsos-chicken", label: "General Tso's Chicken", priceDeltaCents: 0 },
+];
+
+const FAMILY_SPECIAL_C_ENTREE_OPTIONS: MenuModifierOption[] = [
+  { id: "honey-chicken", label: "Honey Chicken", priceDeltaCents: 0 },
+  { id: "sweet-sour-chicken", label: "Sweet & Sour Chicken", priceDeltaCents: 0 },
+  { id: "sesame-chicken", label: "Sesame Chicken", priceDeltaCents: 0 },
+  { id: "general-tsos-chicken", label: "General Tso's Chicken", priceDeltaCents: 0 },
+  { id: "chicken-broccoli", label: "Chicken Broccoli", priceDeltaCents: 0 },
+  { id: "popcorn-chicken", label: "Popcorn Chicken", priceDeltaCents: 0 },
+];
+
+const FAMILY_SPECIAL_VEGETABLE_MEAT_OPTIONS: MenuModifierOption[] = [
+  { id: "chicken-mixed-vegetable", label: "Chicken with Mixed Vegetable", priceDeltaCents: 0 },
+  { id: "beef-mixed-vegetables", label: "Beef with Mixed Vegetables", priceDeltaCents: 0 },
+  { id: "shrimp-mixed-vegetable", label: "Shrimp with Mixed Vegetable", priceDeltaCents: 0 },
+  {
+    id: "roast-pork-mixed-vegetable",
+    label: "Roast Pork with Mixed Vegetable",
+    priceDeltaCents: 0,
+  },
+];
+
 export const SPECIALTY_PLATTER_SIDE_GROUP: MenuModifierGroup = {
   id: "specialty-platter-side",
   label: "Add a Side",
@@ -127,6 +192,81 @@ export const REGULAR_ENTREE_SIDE_GROUP: MenuModifierGroup = {
   options: REGULAR_ENTREE_SIDE_UPGRADES,
 };
 
+const FAMILY_SPECIAL_GROUPS_BY_ITEM_ID: Record<string, MenuModifierGroup[]> = {
+  "FS-A": [
+    {
+      id: "family-special-a-soup",
+      label: "Soup choice",
+      required: true,
+      options: FAMILY_SPECIAL_SOUP_OPTIONS,
+    },
+    {
+      id: "family-special-a-fried-rice",
+      label: "Fried rice choice",
+      required: true,
+      options: FAMILY_SPECIAL_FRIED_RICE_OPTIONS,
+    },
+    {
+      id: "family-special-a-entree",
+      label: "Entree choice",
+      required: true,
+      options: FAMILY_SPECIAL_A_ENTREE_OPTIONS,
+    },
+    {
+      id: "family-special-a-vegetable-meat",
+      label: "Vegetable with meat choice",
+      required: true,
+      options: FAMILY_SPECIAL_VEGETABLE_MEAT_OPTIONS,
+    },
+  ],
+  "FS-B": [
+    {
+      id: "family-special-b-fried-rice",
+      label: "Fried rice choice",
+      required: true,
+      options: FAMILY_SPECIAL_FRIED_RICE_OPTIONS,
+    },
+    {
+      id: "family-special-b-entree",
+      label: "Entree choice",
+      required: true,
+      options: FAMILY_SPECIAL_B_ENTREE_OPTIONS,
+    },
+  ],
+  "FS-C": [
+    {
+      id: "family-special-c-soup",
+      label: "Soup choice",
+      required: true,
+      options: FAMILY_SPECIAL_SOUP_OPTIONS,
+    },
+    {
+      id: "family-special-c-lo-mein",
+      label: "Lo mein choice",
+      required: true,
+      options: FAMILY_SPECIAL_LO_MEIN_OPTIONS,
+    },
+    {
+      id: "family-special-c-fried-rice",
+      label: "Fried rice choice",
+      required: true,
+      options: FAMILY_SPECIAL_FRIED_RICE_OPTIONS,
+    },
+    {
+      id: "family-special-c-entree-1",
+      label: "Entree choice 1",
+      required: true,
+      options: FAMILY_SPECIAL_C_ENTREE_OPTIONS,
+    },
+    {
+      id: "family-special-c-entree-2",
+      label: "Entree choice 2",
+      required: true,
+      options: FAMILY_SPECIAL_C_ENTREE_OPTIONS,
+    },
+  ],
+};
+
 export function isSpecialtyPlatterSection(section: Pick<MenuSection, "id">) {
   return section.id === "specialty-platters";
 }
@@ -169,6 +309,17 @@ export function getModifierGroupsForSection(section: Pick<MenuSection, "id">) {
   }
 
   return [];
+}
+
+export function getModifierGroupsForItem(
+  section: Pick<MenuSection, "id">,
+  item: Pick<MenuItem, "id">,
+) {
+  if (section.id === "family-specials") {
+    return FAMILY_SPECIAL_GROUPS_BY_ITEM_ID[item.id] ?? [];
+  }
+
+  return getModifierGroupsForSection(section);
 }
 
 export function getItemOptionGroup(item: Pick<MenuItem, "options">) {

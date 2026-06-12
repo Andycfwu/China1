@@ -30,6 +30,33 @@ const statuses: OrderStatus[] = [
   "Cancelled",
 ];
 
+function playLoudOrderAlert(audioContext: AudioContext) {
+  const now = audioContext.currentTime;
+  const duration = 4.5;
+  const beepLength = 0.065;
+  const interval = 0.11;
+  const gainValue = 0.85;
+
+  for (let t = 0; t < duration; t += interval) {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    const frequency = Math.floor(t / interval) % 2 === 0 ? 980 : 1220;
+
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(frequency, now + t);
+
+    gain.gain.setValueAtTime(0, now + t);
+    gain.gain.linearRampToValueAtTime(gainValue, now + t + 0.01);
+    gain.gain.setValueAtTime(gainValue, now + t + beepLength - 0.01);
+    gain.gain.linearRampToValueAtTime(0, now + t + beepLength);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now + t);
+    oscillator.stop(now + t + beepLength);
+  }
+}
+
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "short",
@@ -64,7 +91,7 @@ export function AdminOrders() {
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedOrdersRef = useRef(false);
 
-  async function playOrderAlert() {
+  async function playOrderAlert({ test = false }: { test?: boolean } = {}) {
     try {
       const AudioContextClass =
         window.AudioContext ??
@@ -83,20 +110,27 @@ export function AdminOrders() {
         await context.resume();
       }
 
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
+      if (test) {
+        const now = context.currentTime;
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
 
-      oscillator.type = "square";
-      oscillator.frequency.setValueAtTime(880, context.currentTime);
-      oscillator.frequency.setValueAtTime(660, context.currentTime + 0.16);
-      gain.gain.setValueAtTime(0.0001, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.38);
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(1175, now);
+        oscillator.frequency.setValueAtTime(880, now + 0.18);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.72, now + 0.02);
+        gain.gain.setValueAtTime(0.72, now + 0.42);
+        gain.gain.linearRampToValueAtTime(0, now + 0.5);
 
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.42);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start(now);
+        oscillator.stop(now + 0.5);
+      } else {
+        playLoudOrderAlert(context);
+      }
+
       setSoundAlertMessage("");
     } catch {
       setSoundAlertMessage(
@@ -211,7 +245,7 @@ export function AdminOrders() {
   async function handleEnableSoundAlerts() {
     setSoundAlertsEnabled(true);
     window.localStorage.setItem(SOUND_ALERTS_KEY, "true");
-    await playOrderAlert();
+    await playOrderAlert({ test: true });
   }
 
   async function handleOnlineOrderingToggle() {
@@ -399,7 +433,7 @@ export function AdminOrders() {
                 Sound alerts: {soundAlertsEnabled ? "On" : "Off"}
               </p>
               <p className="mt-2 text-sm font-semibold leading-6 text-stone-700">
-                Play a short beep when a new online order arrives.
+                Play a loud 4.5-second fast beep alarm when a new online order arrives.
               </p>
               <button
                 className="mt-4 inline-flex min-h-12 items-center justify-center rounded-md bg-[var(--deep-bamboo)] px-5 py-3 font-black text-white transition hover:bg-[var(--dark-forest)]"

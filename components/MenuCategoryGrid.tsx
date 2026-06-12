@@ -17,6 +17,7 @@ const iconMap: Record<string, typeof Soup> = {
   "lunch-special": Utensils,
   "chefs-specialties": Flame,
   "combination-platters": Soup,
+  "family-specials": PartyPopper,
   appetizers: Wheat,
   soup: Soup,
   "lo-mein": Utensils,

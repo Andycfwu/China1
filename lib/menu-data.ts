@@ -176,6 +176,55 @@ export const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: "family-specials",
+    title: "Family Specials",
+    note: "Family Specials and Game Day Combo. Required choices are selected when ordering online.",
+    items: [
+      {
+        id: "FS-A",
+        name: "Family Special A",
+        price: "$39.99",
+        description:
+          "Includes 3 Roast Pork Egg Roll; 1 Qt Soup; 1 Qt Fried Rice; 1 Qt entree choice; 1 Pt Vegetable with Meat; 1 Qt White Rice free. Feeds 3-4 people.",
+      },
+      {
+        id: "FS-B",
+        name: "Family Special B",
+        price: "$39.99",
+        description:
+          "Includes 2 Beef Roll; 1 Qt Fried Rice; 1 Qt entree choice; 8 whole Chicken Wings; 2 Liter Soda; 1 Qt White Rice free. Feeds 3-4 people. Add preferred soda flavor in item notes.",
+      },
+      {
+        id: "FS-C",
+        name: "Family Special C",
+        price: "$69.99",
+        description:
+          "Includes 5 Shrimp Egg Roll; 10 whole Chicken Wings; 1 Qt Soup; 1 Qt Lo Mein; 1 Qt Fried Rice; choice of 2 Pt entrees; 2 Liter Soda; 1 Qt White Rice free. Feeds 5-6 people. Add preferred soda flavor in item notes.",
+      },
+      {
+        id: "FS-D",
+        name: "Family Special D",
+        price: "$69.99",
+        description:
+          "Includes 1 Pt General Tso's Chicken; 1 Pt Sesame Chicken; 1 Pt Boneless Spare Ribs; 1 Pt Roast Pork Lo Mein; 1 Pt Chicken with Garlic Sauce; 1 Pt Chicken Fried Rice; 1 Pt Honey Chicken; 7 Roast Pork Egg Roll; 2 Liter Soda. Add preferred soda flavor in item notes.",
+      },
+      {
+        id: "FS-E",
+        name: "Family Special E",
+        price: "$49.99",
+        description:
+          "Includes 4 Shrimp Egg Roll; 1 Qt Chicken Lo Mein; 1 Qt Roast Pork Fried Rice; 13 whole Chicken Wings; 2 Liter Soda. Feeds 3-4 people. Add preferred soda flavor in item notes.",
+      },
+      {
+        id: "GD-F",
+        name: "Game Day Combo F",
+        price: "$49.99",
+        description:
+          "Includes Fried Shrimp Basket; 1 Qt French Fries; 1 Qt Spare Rib Tip; 1 Sm Fried Bananas; 1 Chicken on Stick order; 1 Chinese Donuts order; Chicken Gizzards; 8 whole Chicken Wings.",
+      },
+    ],
+  },
+  {
     id: "appetizers",
     title: "Appetizers",
     note: photoEdgeNote,
@@ -291,24 +340,24 @@ export const menuSections: MenuSection[] = [
     title: "Specialty Platters",
     note: "Choose the listed row option. Some cut-off add-on columns still need manual confirmation.",
     items: [
-      { id: "A", name: "Honey Chicken Wings (8 pcs)", price: "Plain $7.35 / French Fries or Plain Fried Rice $9.65 / Pork or Chicken Fried Rice $10.65 / Beef or Shrimp Fried Rice or Plain Lo Mein $11.25" },
-      { id: "B", name: "Fried Chicken Wings (4 Whole)", price: "Plain $6.50 / French Fries or Plain Fried Rice $8.75 / Pork or Chicken Fried Rice $9.75 / Beef or Shrimp Fried Rice or Plain Lo Mein $10.25" },
-      { id: "C", name: "Wings w. General Tso's Sauce", price: "Plain $7.35 / French Fries or Plain Fried Rice $9.65 / Pork or Chicken Fried Rice $10.65 / Beef or Shrimp Fried Rice or Plain Lo Mein $11.25" },
-      { id: "D", name: "B-B-Q Wings (8 pcs)", price: "Plain $7.35 / French Fries or Plain Fried Rice $9.65 / Pork or Chicken Fried Rice $10.65 / Beef or Shrimp Fried Rice or Plain Lo Mein $11.25" },
-      { id: "E", name: "Wings w. Garlic Sauce", price: "Plain $7.35 / French Fries or Plain Fried Rice $9.65 / Pork or Chicken Fried Rice $10.65 / Beef or Shrimp Fried Rice or Plain Lo Mein $11.25" },
-      { id: "F", name: "Chicken Fingers (4)", price: "Plain $6.25 / French Fries or Plain Fried Rice $8.25 / Pork or Chicken Fried Rice $9.25 / Beef or Shrimp Fried Rice or Plain Lo Mein $9.99" },
-      { id: "G", name: "Popcorn Chicken", price: "Sm $5.95 / Lg $8.50" },
-      { id: "H", name: "Chicken Stick (3)", price: "$5.95" },
-      { id: "I", name: "Fried Krab Stick (4)", price: "$5.95" },
-      { id: "J", name: "Flounder Fish (2 Pcs)", price: "$6.25" },
-      { id: "K", name: "Fried Shrimp Basket", price: "$6.25" },
-      { id: "L", name: "Fried Scallop (10)", price: "$6.25" },
-      { id: "M", name: "Spare Rib Tips", price: "Sm Plain $6.50 / Lg Plain $9.25 / French Fries or Plain Fried Rice $10.75 / Pork or Chicken Fried Rice $11.75 / Beef or Shrimp Fried Rice or Plain Lo Mein $12.75" },
-      { id: "N", name: "Shrimp Stick (3)", price: "$5.95" },
-      { id: "O", name: "Chicken Nugget (10)", price: "$6.25" },
-      { id: "P", name: "Fried Chicken Gizzards", price: "$6.25" },
-      { id: "Q", name: "Boneless Spare Ribs", price: "Sm Plain $8.75 / Lg Plain $13.95 / French Fries or Plain Fried Rice $10.75 / Pork or Chicken Fried Rice $11.75 / Beef or Shrimp Fried Rice or Plain Lo Mein $12.75" },
-      { id: "R", name: "B-B-Q Spare Ribs", price: "Sm Plain $8.75 / Lg Plain $13.95 / French Fries or Plain Fried Rice $10.75 / Pork or Chicken Fried Rice $11.75 / Beef or Shrimp Fried Rice or Plain Lo Mein $12.75" },
+      { id: "A", name: "Honey Chicken Wings (8 pcs)", price: "Plain $7.35 / French Fries $9.65 / Plain Fried Rice $9.65 / Pork Fried Rice $10.65 / Chicken Fried Rice $10.65 / Beef Fried Rice $11.25 / Shrimp Fried Rice $11.25 / Plain Lo Mein $11.25" },
+      { id: "B", name: "Fried Chicken Wings (4 Whole)", price: "Plain $6.50 / French Fries $8.75 / Plain Fried Rice $8.75 / Pork Fried Rice $9.75 / Chicken Fried Rice $9.75 / Beef Fried Rice $10.25 / Shrimp Fried Rice $10.25 / Plain Lo Mein $10.25" },
+      { id: "C", name: "Wings w. General Tso's Sauce", price: "Plain $7.35 / French Fries $9.65 / Plain Fried Rice $9.65 / Pork Fried Rice $10.65 / Chicken Fried Rice $10.65 / Beef Fried Rice $11.25 / Shrimp Fried Rice $11.25 / Plain Lo Mein $11.25" },
+      { id: "D", name: "B-B-Q Wings (8 pcs)", price: "Plain $7.35 / French Fries $9.65 / Plain Fried Rice $9.65 / Pork Fried Rice $10.65 / Chicken Fried Rice $10.65 / Beef Fried Rice $11.25 / Shrimp Fried Rice $11.25 / Plain Lo Mein $11.25" },
+      { id: "E", name: "Wings w. Garlic Sauce", price: "Plain $7.35 / French Fries $9.65 / Plain Fried Rice $9.65 / Pork Fried Rice $10.65 / Chicken Fried Rice $10.65 / Beef Fried Rice $11.25 / Shrimp Fried Rice $11.25 / Plain Lo Mein $11.25" },
+      { id: "F", name: "Chicken Fingers (4)", price: "Plain $6.25 / French Fries $8.25 / Plain Fried Rice $8.25 / Pork Fried Rice $9.25 / Chicken Fried Rice $9.25 / Beef Fried Rice $9.99 / Shrimp Fried Rice $9.99 / Plain Lo Mein $9.99" },
+      { id: "G", name: "Popcorn Chicken", price: "Plain Small $5.95 / Plain Large $8.50" },
+      { id: "H", name: "Chicken Stick (3)", price: "Plain $5.95" },
+      { id: "I", name: "Fried Krab Stick (4)", price: "Plain $5.95" },
+      { id: "J", name: "Flounder Fish (2 Pcs)", price: "Plain $6.25" },
+      { id: "K", name: "Fried Shrimp Basket", price: "Plain $6.25" },
+      { id: "L", name: "Fried Scallop (10)", price: "Plain $6.25" },
+      { id: "M", name: "Spare Rib Tips", price: "Plain Small $6.50 / Plain Large $9.25 / French Fries $10.75 / Plain Fried Rice $10.75 / Pork Fried Rice $11.75 / Chicken Fried Rice $11.75 / Beef Fried Rice $12.75 / Shrimp Fried Rice $12.75 / Plain Lo Mein $12.75" },
+      { id: "N", name: "Shrimp Stick (3)", price: "Plain $5.95" },
+      { id: "O", name: "Chicken Nugget (10)", price: "Plain $6.25" },
+      { id: "P", name: "Fried Chicken Gizzards", price: "Plain $6.25" },
+      { id: "Q", name: "Boneless Spare Ribs", price: "Plain Small $8.75 / Plain Large $13.95 / French Fries $10.75 / Plain Fried Rice $10.75 / Pork Fried Rice $11.75 / Chicken Fried Rice $11.75 / Beef Fried Rice $12.75 / Shrimp Fried Rice $12.75 / Plain Lo Mein $12.75" },
+      { id: "R", name: "B-B-Q Spare Ribs", price: "Plain Small $8.75 / Plain Large $13.95 / French Fries $10.75 / Plain Fried Rice $10.75 / Pork Fried Rice $11.75 / Chicken Fried Rice $11.75 / Beef Fried Rice $12.75 / Shrimp Fried Rice $12.75 / Plain Lo Mein $12.75" },
     ],
   },
   {

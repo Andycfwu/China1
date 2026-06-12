@@ -44,7 +44,7 @@ function receiptChineseLabel(item: StoredOrder["items"][number]) {
 
 function formatReceiptCode(code: string | null | undefined, fallbackIndex: number) {
   const normalized = normalizeReceiptItemCode(code ?? "");
-  const looksLikeMenuCode = /^(?:[A-Z]\d+|[A-Z]|\d+)$/.test(normalized);
+  const looksLikeMenuCode = /^(?:[A-Z]+-[A-Z0-9]+|[A-Z]\d+|[A-Z]|\d+)$/.test(normalized);
   return normalized && looksLikeMenuCode ? `${normalized}.` : `${fallbackIndex}.`;
 }
 

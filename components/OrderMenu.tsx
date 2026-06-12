@@ -18,10 +18,11 @@ import {
   createCartModifier,
   formatCartModifierLabel,
   getItemOptionGroup,
-  getModifierGroupsForSection,
+  getModifierGroupsForItem,
   isLunchSpecialSection,
   isRegularEntreeSection,
   isSpecialCombinationSection,
+  isSpecialtyPlatterSection,
 } from "@/lib/menu-modifiers";
 import type { CartItemModifier } from "@/lib/menu-modifiers";
 import { restaurantInfo } from "@/lib/menu-data";
@@ -74,7 +75,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
     Record<string, string>
   >({});
   const [selectedModifierByItemId, setSelectedModifierByItemId] = useState<
-    Record<string, string>
+    Record<string, Record<string, string>>
   >({});
   const [cartOpen, setCartOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -585,31 +586,35 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const lunchSpecial = isLunchSpecialSection(section);
                             const specialCombination =
                               isSpecialCombinationSection(section);
+                            const specialtyPlatter =
+                              isSpecialtyPlatterSection(section);
                             const regularEntree =
                               isRegularEntreeSection(section);
                             const priceOptions = rawPriceOptions;
                             const itemOptionGroup = getItemOptionGroup(item);
                             const modifierGroups = itemOptionGroup
                               ? [itemOptionGroup]
-                              : getModifierGroupsForSection(section);
-                            const modifierGroup = modifierGroups[0];
-                            const modifierRequired = Boolean(modifierGroup?.required);
-                            const selectedModifierOptionId =
-                              selectedModifierByItemId[itemKey];
-                            const selectedModifierOption =
-                              modifierGroup?.options.find(
-                                (option) =>
-                                  option.id === selectedModifierOptionId,
-                              );
-                            const selectedModifiers =
-                              modifierGroup && selectedModifierOption
-                                ? [
-                                    createCartModifier(
-                                      modifierGroup,
-                                      selectedModifierOption,
-                                    ),
-                                  ]
-                                : [];
+                              : getModifierGroupsForItem(section, item);
+                            const selectedModifierOptionIds =
+                              selectedModifierByItemId[itemKey] ?? {};
+                            const selectedModifiers = modifierGroups.flatMap(
+                              (group) => {
+                                const optionId =
+                                  selectedModifierOptionIds[group.id];
+                                const option = group.options.find(
+                                  (groupOption) => groupOption.id === optionId,
+                                );
+
+                                return option
+                                  ? [createCartModifier(group, option)]
+                                  : [];
+                              },
+                            );
+                            const missingRequiredModifier = modifierGroups.some(
+                              (group) =>
+                                group.required &&
+                                !selectedModifierOptionIds[group.id],
+                            );
                             const hasMultiplePrices = priceOptions.length > 1;
                             const selectedPriceId =
                               selectedPriceByItemId[itemKey] ??
@@ -632,7 +637,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                             const canAddItem =
                               onlineOrderingOpen &&
                               itemAvailable &&
-                              (!modifierRequired || Boolean(selectedModifierOption));
+                              !missingRequiredModifier;
                             const modifierDeltaCents = selectedModifiers.reduce(
                               (total, modifier) =>
                                 total + modifier.priceDeltaCents,
@@ -680,60 +685,93 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                       </p>
                                     ) : null}
 
-                                    {modifierGroup ? (
-                                      <div className="mt-4">
-                                        <label className="block">
-                                          <span className="text-sm font-black text-[var(--deep-bamboo)]">
-                                            {lunchSpecial
+                                    {modifierGroups.length > 0 ? (
+                                      <div className="mt-4 grid gap-3">
+                                        {modifierGroups.map((modifierGroup) => {
+                                          const selectedModifierOptionId =
+                                            selectedModifierOptionIds[
+                                              modifierGroup.id
+                                            ] ?? "";
+                                          const modifierLabel = itemOptionGroup
+                                            ? "Choose"
+                                            : lunchSpecial ||
+                                                specialCombination ||
+                                                regularEntree
                                               ? "Side upgrade"
-                                              : specialCombination
-                                                ? "Side upgrade"
-                                                : regularEntree
-                                                  ? "Side upgrade"
-                                                  : itemOptionGroup
-                                                    ? "Choose"
-                                                    : "Add a side?"}
-                                          </span>
-                                          <select
-                                            className="mt-2 min-h-11 w-full rounded-xl border border-[var(--warm-border)] bg-white px-3 py-2 text-sm font-black text-stone-950 outline-none focus:border-[var(--deep-bamboo)]"
-                                            onChange={(event) =>
-                                              setSelectedModifierByItemId(
-                                                (current) => ({
-                                                  ...current,
-                                                  [itemKey]: event.target.value,
-                                                }),
-                                              )
-                                            }
-                                            value={selectedModifierOptionId ?? ""}
-                                          >
-                                            <option value="">
-                                              {itemOptionGroup
-                                                ? "Choose one"
-                                                : lunchSpecial
+                                              : modifierGroup.label;
+                                          const emptyLabel =
+                                            itemOptionGroup ||
+                                            modifierGroup.required
+                                              ? `Choose ${modifierGroup.label.toLowerCase()}`
+                                              : lunchSpecial
                                                 ? "Included side + can soda"
                                                 : specialCombination
                                                   ? "Included side + egg roll"
-                                                : "No side"}
-                                            </option>
-                                            {modifierGroup.options.map(
-                                              (option) => (
-                                                <option
-                                                  key={option.id}
-                                                  value={option.id}
-                                                >
-                                                  {option.label}
-                                                  {option.priceDeltaCents > 0
-                                                    ? ` +${formatCurrency(
-                                                        option.priceDeltaCents / 100,
-                                                      )}`
-                                                    : ""}
+                                                  : "No side";
+
+                                          return (
+                                            <label
+                                              className="block"
+                                              key={modifierGroup.id}
+                                            >
+                                              <span className="text-sm font-black text-[var(--deep-bamboo)]">
+                                                {modifierLabel}
+                                              </span>
+                                              <select
+                                                className="mt-2 min-h-11 w-full rounded-xl border border-[var(--warm-border)] bg-white px-3 py-2 text-sm font-black text-stone-950 outline-none focus:border-[var(--deep-bamboo)]"
+                                                onChange={(event) =>
+                                                  setSelectedModifierByItemId(
+                                                    (current) => {
+                                                      const itemSelections = {
+                                                        ...(current[itemKey] ??
+                                                          {}),
+                                                      };
+
+                                                      if (event.target.value) {
+                                                        itemSelections[
+                                                          modifierGroup.id
+                                                        ] = event.target.value;
+                                                      } else {
+                                                        delete itemSelections[
+                                                          modifierGroup.id
+                                                        ];
+                                                      }
+
+                                                      return {
+                                                        ...current,
+                                                        [itemKey]:
+                                                          itemSelections,
+                                                      };
+                                                    },
+                                                  )
+                                                }
+                                                value={selectedModifierOptionId}
+                                              >
+                                                <option value="">
+                                                  {emptyLabel}
                                                 </option>
-                                              ),
-                                            )}
-                                          </select>
-                                        </label>
+                                                {modifierGroup.options.map(
+                                                  (option) => (
+                                                    <option
+                                                      key={option.id}
+                                                      value={option.id}
+                                                    >
+                                                      {option.label}
+                                                      {option.priceDeltaCents > 0
+                                                        ? ` +${formatCurrency(
+                                                            option.priceDeltaCents /
+                                                              100,
+                                                          )}`
+                                                        : ""}
+                                                    </option>
+                                                  ),
+                                                )}
+                                              </select>
+                                            </label>
+                                          );
+                                        })}
                                         {lunchSpecial || specialCombination ? (
-                                          <p className="mt-2 text-xs font-black uppercase text-stone-600">
+                                          <p className="text-xs font-black uppercase text-stone-600">
                                             {lunchSpecial
                                               ? "Includes can soda"
                                               : "Includes egg roll"}
@@ -744,7 +782,35 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                   </div>
 
                                   <div className="min-w-0 lg:text-right">
-                                    {hasMultiplePrices ? (
+                                    {specialtyPlatter ? (
+                                      <label className="block text-left lg:text-right">
+                                        <span className="text-sm font-black text-[var(--deep-bamboo)]">
+                                          Choose side / combo option
+                                        </span>
+                                        <select
+                                          className="mt-2 min-h-11 w-full rounded-xl border border-[var(--warm-border)] bg-white px-3 py-2 text-sm font-black text-stone-950 outline-none focus:border-[var(--deep-bamboo)]"
+                                          disabled={!itemAvailable}
+                                          onChange={(event) =>
+                                            setSelectedPriceByItemId(
+                                              (current) => ({
+                                                ...current,
+                                                [itemKey]: event.target.value,
+                                              }),
+                                            )
+                                          }
+                                          value={selectedPriceOption?.id ?? ""}
+                                        >
+                                          {priceOptions.map((option) => (
+                                            <option
+                                              key={option.id}
+                                              value={option.id}
+                                            >
+                                              {option.label} {option.price}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </label>
+                                    ) : hasMultiplePrices ? (
                                       <div className="flex flex-wrap gap-2 lg:justify-end">
                                         {priceOptions.map((option) => {
                                           const selected =
@@ -792,17 +858,20 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                               100,
                                           )}
                                         </p>
-                                        <p>
-                                          {selectedModifiers[0].groupLabel}:{" "}
-                                          {selectedModifiers[0].optionLabel}
-                                          {selectedModifiers[0]
-                                            .priceDeltaCents > 0
-                                            ? ` +${formatCurrency(
-                                                selectedModifiers[0]
-                                                  .priceDeltaCents / 100,
-                                              )}`
-                                            : ""}
-                                        </p>
+                                        {selectedModifiers.map((modifier) => (
+                                          <p
+                                            key={`${modifier.groupId}-${modifier.optionId}`}
+                                          >
+                                            {modifier.groupLabel}:{" "}
+                                            {modifier.optionLabel}
+                                            {modifier.priceDeltaCents > 0
+                                              ? ` +${formatCurrency(
+                                                  modifier.priceDeltaCents /
+                                                    100,
+                                                )}`
+                                              : ""}
+                                          </p>
+                                        ))}
                                         <p className="text-[var(--china-red)]">
                                           Item total:{" "}
                                           {formatCurrency(selectedItemTotal)}
@@ -830,12 +899,12 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                         ? "Ordering Closed"
                                         : !itemAvailable
                                           ? "Lunch Unavailable"
-                                        : modifierRequired &&
-                                            !selectedModifierOption
-                                          ? "Choose option"
+                                        : missingRequiredModifier
+                                          ? "Choose options"
                                         : quantityInCart > 0
                                           ? `Add More (${quantityInCart} in cart)`
-                                          : hasMultiplePrices && selectedPriceOption
+                                          : (hasMultiplePrices || specialtyPlatter) &&
+                                              selectedPriceOption
                                             ? `Add ${selectedPriceOption.label} to Order`
                                             : "Add to Order"}
                                     </button>
