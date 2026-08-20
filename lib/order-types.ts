@@ -1,4 +1,4 @@
-import type { CartItemModifier } from "@/lib/menu-modifiers";
+import type { CartItemModifier } from "./menu-modifiers.ts";
 
 export type PaymentMethod = "Cash" | "Cash App";
 

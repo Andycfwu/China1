@@ -44,8 +44,12 @@ Run the SQL in [supabase/orders.sql](./supabase/orders.sql) in the Supabase SQL 
 
 - `orders`
 - `order_items`
-- basic MVP RLS policies for anonymous pickup order insert/read/update
+- server-only pickup order creation through `/api/orders`
+- basic MVP RLS policies for anonymous admin reads/updates
 - realtime publication entries for the admin order board
+
+Rerun this SQL on an existing project to remove the obsolete anonymous insert
+policies. Checkout now validates and inserts orders only through the server API.
 
 If your database already has `order_items`, rerun the SQL or run this size
 selection migration:
@@ -98,6 +102,11 @@ Run the automatic bridge:
 ```bash
 npm run print-bridge
 ```
+
+Direct host execution requires Node.js 22.6 or newer. The repeated Windows
+computer beep is available when `npm run print-bridge` runs directly on
+Windows. A Linux Docker container cannot play the Windows host system beep;
+verify which bridge launch mode the restaurant computer will use.
 
 The bridge:
 

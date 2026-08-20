@@ -1,20 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import iconv from "iconv-lite";
+import { spawn } from "node:child_process";
 import { createServer, type Server } from "node:http";
-import { Socket } from "node:net";
-import { pathToFileURL } from "node:url";
+import { isIP, Socket } from "node:net";
+import { resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { calculateOrderTotals, isCashAppPayment } from "../lib/pricing.ts";
+import { formatPickupTime } from "../lib/pickup-time.ts";
 import {
   getReceiptChineseName,
   normalizeReceiptItemCode,
 } from "../lib/receipt-chinese-names.ts";
 
-dotenv.config({ path: ".env.local", quiet: true });
+const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
+
+dotenv.config({ path: resolve(projectRoot, ".env.local"), quiet: true });
 dotenv.config({ quiet: true });
 
 type PaymentMethod = string;
-type PickupChoice = "ASAP" | "Later";
+type PickupChoice = string;
 
 type OrderItemRow = {
   id: string;
@@ -96,12 +101,13 @@ const DEFAULT_PRINTER_PORT = 9100;
 const DEFAULT_HEALTH_PORT = 3101;
 const POLL_INTERVAL_MS = 10_000;
 const RECEIPT_WIDTH = 42;
+const RESTAURANT_TIME_ZONE = "America/New_York";
 const processingOrderIds = new Set<string>();
 let lastSuccessfulPollAt: string | null = null;
 let lastPollError: string | null = null;
 
 function requireEnv(name: string) {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
 
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -110,20 +116,50 @@ function requireEnv(name: string) {
   return value;
 }
 
+function requireSupabaseUrl() {
+  const value = requireEnv("SUPABASE_URL");
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      throw new Error("Unsupported protocol.");
+    }
+  } catch {
+    throw new Error("SUPABASE_URL must be a valid HTTP(S) URL.");
+  }
+
+  return value;
+}
+
 function printerHost() {
-  return (
+  const host = (
     process.env.PRINTER_HOST ??
     process.env.THERMAL_PRINTER_HOST ??
     DEFAULT_PRINTER_HOST
-  );
+  ).trim();
+
+  if (
+    !host ||
+    (isIP(host) === 0 && !/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/i.test(host))
+  ) {
+    throw new Error("PRINTER_HOST must be a valid IP address or hostname.");
+  }
+
+  return host;
 }
 
 function printerPort() {
-  return Number(
+  const port = Number(
     process.env.PRINTER_PORT ??
       process.env.THERMAL_PRINTER_PORT ??
       DEFAULT_PRINTER_PORT,
   );
+
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error("PRINTER_PORT must be an integer between 1 and 65535.");
+  }
+
+  return port;
 }
 
 function healthPort() {
@@ -132,7 +168,7 @@ function healthPort() {
 
 function createServiceClient() {
   return createClient(
-    requireEnv("SUPABASE_URL"),
+    requireSupabaseUrl(),
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     {
       auth: {
@@ -158,25 +194,100 @@ function cleanText(value: string) {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
 }
 
-function receiptDateTime(value: string) {
+function receiptPlacedTime(value: string) {
   const date = new Date(value);
-  const dateLabel = new Intl.DateTimeFormat("en-US", {
-    month: "numeric",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-  const timeLabel = new Intl.DateTimeFormat("en-US", {
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: RESTAURANT_TIME_ZONE,
   }).format(date);
-
-  return `${dateLabel}  ${timeLabel}`;
 }
 
-function pickupLabel(order: PrintableOrder) {
-  return order.pickupChoice === "ASAP"
-    ? "Online_Pickup ASAP"
-    : `Online_Pickup ${order.pickupTime}`;
+function normalizePickupChoice(value: string) {
+  return value.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+function isAsapPickup(order: PrintableOrder) {
+  return (
+    normalizePickupChoice(order.pickupChoice).includes("asap") ||
+    order.pickupTime.trim().toUpperCase() === "ASAP"
+  );
+}
+
+function isScheduledPickup(order: PrintableOrder) {
+  if (isAsapPickup(order)) {
+    return false;
+  }
+
+  const choice = normalizePickupChoice(order.pickupChoice);
+  return (
+    ["later", "scheduled", "schedule", "onlinepickup"].includes(choice) ||
+    Boolean(order.pickupTime.trim())
+  );
+}
+
+function restaurantDateKey(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: RESTAURANT_TIME_ZONE,
+    year: "numeric",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function scheduledPickupDate(pickupTime: string, createdAt: string) {
+  const localMatch = pickupTime.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  let pickupDateKey = "";
+  let pickupDate: Date | null = null;
+
+  if (localMatch) {
+    pickupDateKey = `${localMatch[1]}-${localMatch[2]}-${localMatch[3]}`;
+    pickupDate = new Date(
+      Date.UTC(
+        Number(localMatch[1]),
+        Number(localMatch[2]) - 1,
+        Number(localMatch[3]),
+        12,
+      ),
+    );
+  } else {
+    const parsed = new Date(pickupTime);
+    if (!Number.isNaN(parsed.getTime())) {
+      pickupDateKey = restaurantDateKey(pickupTime);
+      pickupDate = parsed;
+    }
+  }
+
+  if (
+    !pickupDate ||
+    !pickupDateKey ||
+    pickupDateKey === restaurantDateKey(createdAt)
+  ) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+    timeZone: localMatch ? "UTC" : RESTAURANT_TIME_ZONE,
+    weekday: "short",
+  })
+    .format(pickupDate)
+    .toUpperCase();
 }
 
 function rowToOrder(row: OrderRow): PrintableOrder {
@@ -387,14 +498,44 @@ function printHeader(parts: Buffer[]) {
   parts.push(text(""));
 }
 
+function printScheduledPickupBanner(
+  parts: Buffer[],
+  pickupTime: string,
+  createdAt: string,
+) {
+  const pickupDate = scheduledPickupDate(pickupTime, createdAt);
+
+  parts.push(normalText(), align("center"));
+  parts.push(text("=".repeat(RECEIPT_WIDTH)));
+  parts.push(bold(true), textSize(1, 0));
+  parts.push(text("SCHEDULED PICKUP"));
+  if (pickupDate) {
+    parts.push(text(pickupDate));
+  }
+  parts.push(doubleWidthHeightOn());
+  parts.push(text(formatPickupTime(pickupTime)));
+  parts.push(normalText(), align("center"));
+  parts.push(text("=".repeat(RECEIPT_WIDTH)));
+  parts.push(normalText(), align("left"));
+}
+
 function printOrderMeta(parts: Buffer[], order: PrintableOrder) {
   parts.push(normalText(), align("center"), bold(true), textSize(1, 1));
-  parts.push(text("Online_Order / Pickup"));
+  parts.push(text("Online Order / Pickup"));
+
+  if (isScheduledPickup(order)) {
+    printScheduledPickupBanner(parts, order.pickupTime, order.createdAt);
+  }
+
   parts.push(normalText(), align("left"));
-  parts.push(text(line(receiptDateTime(order.createdAt), order.orderNumber)));
+  parts.push(text(`Order Placed: ${receiptPlacedTime(order.createdAt)}`));
+  parts.push(text(`ORDER: ${order.orderNumber}`));
   parts.push(text("Server: Online"));
   parts.push(text("-".repeat(RECEIPT_WIDTH)));
-  parts.push(text(pickupLabel(order)));
+
+  if (isAsapPickup(order)) {
+    parts.push(text("Pickup: ASAP"));
+  }
   parts.push(text(`Payment: ${order.paymentMethod}`));
   if (isCashAppPayment(order.paymentMethod)) {
   parts.push(text("Verify Cash App payment manually"));
@@ -413,13 +554,6 @@ function printItem(
   const codeLabel = formatReceiptCode(item.menuItemNumber ?? item.menuItemId, index + 1);
   const quantityPrefix = item.quantity > 1 ? `${item.quantity}x ` : "";
   const itemTotal = money(item.unitPrice * item.quantity);
-
-  console.log("[print-bridge] chinese lookup", {
-    chineseName: chineseLine,
-    menuItemId: item.menuItemId,
-    menuItemNumber: item.menuItemNumber,
-    name: item.name,
-  });
 
   if (chineseLine) {
     parts.push(normalText(), bold(true), doubleWidthHeightOn());
@@ -545,6 +679,45 @@ export function sendToPrinter(buffer: Buffer) {
   });
 }
 
+export function playPrintedOrderAlert() {
+  if (process.platform !== "win32") {
+    console.log(
+      "[print-bridge] Computer alert skipped: Windows system beep is only enabled on the restaurant PC.",
+    );
+    return Promise.resolve(false);
+  }
+
+  const powershellScript = [
+    "$ErrorActionPreference = 'Stop'",
+    "1..24 | ForEach-Object {",
+    "  $frequency = if ($_ % 2 -eq 0) { 1350 } else { 1100 }",
+    "  [Console]::Beep($frequency, 120)",
+    "  Start-Sleep -Milliseconds 70",
+    "}",
+  ].join("\n");
+
+  return new Promise<boolean>((resolve, reject) => {
+    const child = spawn(
+      "powershell.exe",
+      ["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", powershellScript],
+      {
+        stdio: "ignore",
+        windowsHide: true,
+      },
+    );
+
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) {
+        resolve(true);
+        return;
+      }
+
+      reject(new Error(`Windows computer alert exited with code ${code}.`));
+    });
+  });
+}
+
 async function fetchUnprintedOrders() {
   const client = createServiceClient();
   const { data, error } = await client
@@ -585,7 +758,15 @@ async function printOrder(order: PrintableOrder) {
   try {
     await sendToPrinter(buildReceiptBuffer(order));
     await markPrinted(order.id);
-    console.log(`[print-bridge] Printed ${order.orderNumber} and marked printed=true.`);
+    console.log(`[print-bridge] Printed ${order.orderNumber} successfully.`);
+    console.log(`[print-bridge] Marked ${order.orderNumber} printed=true.`);
+    console.log("[print-bridge] Playing new-order computer alert.");
+    void playPrintedOrderAlert().catch((error) => {
+      console.warn(
+        "[print-bridge] Receipt printed, but computer alert failed.",
+        error,
+      );
+    });
   } catch (error) {
     console.error(
       `[print-bridge] Failed to print ${order.orderNumber}. It will remain printed=false.`,

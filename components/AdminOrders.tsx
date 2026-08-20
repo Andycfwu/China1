@@ -15,8 +15,12 @@ import {
   updateStoredOrderStatus,
 } from "@/lib/order-store";
 import { formatCartModifierLabel } from "@/lib/menu-modifiers";
-import { isLunchCartItem } from "@/lib/order-availability";
+import {
+  isCombinationCartItem,
+  isLunchCartItem,
+} from "@/lib/order-availability";
 import type { OrderStatus, StoredOrder } from "@/lib/order-types";
+import { formatPickupTime } from "@/lib/pickup-time";
 import { calculateOrderTotals, formatCurrency } from "@/lib/pricing";
 
 const ADMIN_UNLOCK_KEY = "china1-admin-unlocked";
@@ -146,62 +150,77 @@ export function AdminOrders() {
 
     let isMounted = true;
 
+    let loadInFlight = false;
+    let reloadQueued = false;
+
     const loadOrders = async () => {
-      setLoadError("");
+      if (loadInFlight) {
+        reloadQueued = true;
+        return;
+      }
 
-      try {
-        const [nextOrders, nextOnlineOrderingOpen] = await Promise.all([
-          fetchStoredOrders(),
-          fetchOnlineOrderingOpen(),
-        ]);
-        if (isMounted) {
-          const nextOrderIds = new Set(nextOrders.map((order) => order.id));
+      loadInFlight = true;
 
-          if (hasLoadedOrdersRef.current) {
-            const newOrderIds = nextOrders
-              .map((order) => order.id)
-              .filter((orderId) => !knownOrderIdsRef.current.has(orderId));
+      do {
+        reloadQueued = false;
+        setLoadError("");
 
-            if (newOrderIds.length > 0) {
-              setHighlightedOrderIds((currentIds) => {
-                const nextIds = new Set(currentIds);
-                newOrderIds.forEach((orderId) => nextIds.add(orderId));
-                return nextIds;
-              });
+        try {
+          const [nextOrders, nextOnlineOrderingOpen] = await Promise.all([
+            fetchStoredOrders(),
+            fetchOnlineOrderingOpen(),
+          ]);
+          if (isMounted) {
+            const nextOrderIds = new Set(nextOrders.map((order) => order.id));
 
-              window.setTimeout(() => {
+            if (hasLoadedOrdersRef.current) {
+              const newOrderIds = nextOrders
+                .map((order) => order.id)
+                .filter((orderId) => !knownOrderIdsRef.current.has(orderId));
+
+              if (newOrderIds.length > 0) {
                 setHighlightedOrderIds((currentIds) => {
                   const nextIds = new Set(currentIds);
-                  newOrderIds.forEach((orderId) => nextIds.delete(orderId));
+                  newOrderIds.forEach((orderId) => nextIds.add(orderId));
                   return nextIds;
                 });
-              }, 8000);
 
-              if (soundAlertsEnabled) {
-                void playOrderAlert();
+                window.setTimeout(() => {
+                  setHighlightedOrderIds((currentIds) => {
+                    const nextIds = new Set(currentIds);
+                    newOrderIds.forEach((orderId) => nextIds.delete(orderId));
+                    return nextIds;
+                  });
+                }, 8000);
+
+                if (soundAlertsEnabled) {
+                  void playOrderAlert();
+                }
               }
+            } else {
+              hasLoadedOrdersRef.current = true;
             }
-          } else {
-            hasLoadedOrdersRef.current = true;
-          }
 
-          knownOrderIdsRef.current = nextOrderIds;
-          setOrders(nextOrders);
-          setOnlineOrderingOpen(nextOnlineOrderingOpen);
+            knownOrderIdsRef.current = nextOrderIds;
+            setOrders(nextOrders);
+            setOnlineOrderingOpen(nextOnlineOrderingOpen);
+          }
+        } catch (error) {
+          if (isMounted) {
+            setLoadError(
+              error instanceof OrderStoreError
+                ? error.message
+                : "Could not load orders from Supabase.",
+            );
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
-      } catch (error) {
-        if (isMounted) {
-          setLoadError(
-            error instanceof OrderStoreError
-              ? error.message
-              : "Could not load orders from Supabase.",
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+      } while (isMounted && reloadQueued);
+
+      loadInFlight = false;
     };
 
     void loadOrders();
@@ -498,6 +517,8 @@ export function AdminOrders() {
                 className={`paper-card p-5 transition sm:p-6 ${
                   highlightedOrderIds.has(order.id)
                     ? "border-[var(--china-red)] bg-red-50 shadow-2xl shadow-red-900/20"
+                    : order.pickupChoice === "Later"
+                      ? "border-2 border-amber-500 shadow-xl shadow-amber-900/15"
                     : ""
                 }`}
                 key={order.id}
@@ -510,6 +531,19 @@ export function AdminOrders() {
 
                   return (
                     <>
+                {order.pickupChoice === "Later" ? (
+                  <div className="mb-5 flex items-center gap-4 rounded-xl border-2 border-amber-300 bg-amber-100 px-4 py-4 text-amber-950 shadow-sm sm:px-5">
+                    <Clock aria-hidden="true" className="size-8 shrink-0" />
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-normal">
+                        Scheduled Pickup
+                      </p>
+                      <p className="mt-1 text-2xl font-black sm:text-3xl">
+                        Pickup at {formatPickupTime(order.pickupTime)}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="flex flex-col gap-4 border-b border-[var(--warm-border)] pb-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-sm font-black uppercase text-[var(--china-red)]">
@@ -520,7 +554,11 @@ export function AdminOrders() {
                     </h2>
                     <div className="mt-2 grid gap-1 text-sm font-semibold text-stone-700 sm:grid-cols-2">
                       <p>Phone: {order.phone}</p>
-                      <p>Pickup: {order.pickupTime}</p>
+                      <p className={order.pickupChoice === "Later" ? "font-black text-amber-900" : ""}>
+                        {order.pickupChoice === "Later"
+                          ? `Scheduled Pickup: ${formatPickupTime(order.pickupTime)}`
+                          : "Pickup: ASAP"}
+                      </p>
                       <p>Payment: {order.paymentMethod} at pickup</p>
                       {order.paymentMethod === "Cash App" ? (
                         <p className="rounded-md bg-amber-50 px-2 py-1 font-black text-amber-800">
@@ -593,7 +631,7 @@ export function AdminOrders() {
                             Includes can soda
                           </p>
                         ) : null}
-                        {item.menuItemId.startsWith("C") ? (
+                        {isCombinationCartItem(item) ? (
                           <p className="mt-2 rounded-md bg-green-50 p-2 text-sm font-semibold text-stone-800">
                             Includes egg roll
                           </p>

@@ -68,10 +68,6 @@ function centsToDollars(cents: number) {
   return cents / 100;
 }
 
-export function dollarsToCents(amount: number) {
-  return Math.round(amount * 100);
-}
-
 function mapItemRow(row: OrderItemRow): CartItem {
   return {
     cartId: row.id,
@@ -107,77 +103,6 @@ export function mapOrderRow(row: OrderRow): StoredOrder {
     status: row.status,
     updatedAt: row.updated_at,
   };
-}
-
-export async function createStoredOrder(
-  order: Omit<StoredOrder, "createdAt" | "id" | "printed" | "status" | "updatedAt">,
-) {
-  const client = requireSupabase();
-
-  const { data: orderRow, error: orderError } = await client
-    .from("orders")
-    .insert({
-      customer_name: order.customerName,
-      customer_phone: order.phone,
-      order_number: order.orderNumber,
-      payment_method: order.paymentMethod,
-      pickup_time: order.pickupTime,
-      pickup_type: order.pickupChoice,
-      printed: false,
-      special_instructions: order.specialInstructions || null,
-      status: "New",
-      subtotal_cents: dollarsToCents(order.estimatedSubtotal),
-    })
-    .select()
-    .single<OrderRow>();
-
-  if (orderError || !orderRow) {
-    throw new OrderStoreError(orderError?.message ?? "Could not create order.");
-  }
-
-  const orderItems = order.items.map((item) => ({
-    menu_item_id: item.menuItemId,
-    menu_item_number: item.menuItemId,
-    modifiers: item.modifiers ?? [],
-    name: item.name,
-    notes: item.notes || null,
-    order_id: orderRow.id,
-    quantity: item.quantity,
-    selected_price: item.selectedPrice ?? item.price,
-    selected_price_id: item.selectedPriceId ?? null,
-    selected_price_label: item.selectedPriceLabel ?? null,
-    spicy: Boolean(item.spicy),
-    unit_price_cents: dollarsToCents(item.unitPrice),
-  }));
-
-  const { error: itemsError } = await client.from("order_items").insert(orderItems);
-
-  if (itemsError) {
-    throw new OrderStoreError(itemsError.message);
-  }
-
-  const createdOrder = await fetchStoredOrder(orderRow.id);
-
-  if (!createdOrder) {
-    throw new OrderStoreError("Order was created, but could not be loaded.");
-  }
-
-  return createdOrder;
-}
-
-export async function fetchStoredOrder(id: string) {
-  const client = requireSupabase();
-  const { data, error } = await client
-    .from("orders")
-    .select("*, order_items(*)")
-    .eq("id", id)
-    .single<OrderRow>();
-
-  if (error || !data) {
-    return null;
-  }
-
-  return mapOrderRow(data);
 }
 
 export async function fetchStoredOrders() {

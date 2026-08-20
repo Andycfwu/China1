@@ -51,7 +51,10 @@ export function MenuItemCard({
       ) : null}
       {item.options?.length ? (
         <p className="mt-2 text-sm font-black leading-6 text-[var(--deep-bamboo)]">
-          Choose: {item.options.map((option) => option.label).join(" or ")}
+          {item.optionLabel
+            ? `Choose ${item.optionLabel.toLowerCase()}`
+            : "Choose"}
+          : {item.options.map((option) => option.label).join(" or ")}
         </p>
       ) : null}
     </article>

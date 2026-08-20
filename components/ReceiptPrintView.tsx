@@ -8,6 +8,7 @@ import {
   getReceiptChineseName,
   normalizeReceiptItemCode,
 } from "@/lib/receipt-chinese-names";
+import { formatPickupTime } from "@/lib/pickup-time";
 
 function formatReceiptDateTime(value: string) {
   const date = new Date(value);
@@ -32,7 +33,7 @@ function receiptMoney(value: number) {
 function pickupLabel(order: StoredOrder) {
   return order.pickupChoice === "ASAP"
     ? "Online_Pickup ASAP"
-    : `Online_Pickup ${order.pickupTime}`;
+    : `Online_Pickup ${formatPickupTime(order.pickupTime)}`;
 }
 
 function receiptChineseLabel(item: StoredOrder["items"][number]) {
@@ -125,7 +126,14 @@ export function ReceiptPrintView({ order }: { order: StoredOrder | null }) {
 
       <div className="receipt-divider" />
 
-      <p className="receipt-line-text">{pickupLabel(order)}</p>
+      {order.pickupChoice === "Later" ? (
+        <div className="receipt-scheduled-pickup">
+          <p>*** SCHEDULED PICKUP ***</p>
+          <p>PICKUP TIME: {formatPickupTime(order.pickupTime)}</p>
+        </div>
+      ) : (
+        <p className="receipt-line-text">{pickupLabel(order)}</p>
+      )}
       <p className="receipt-line-text">Payment: {order.paymentMethod}</p>
       {order.paymentMethod === "Cash App" ? (
         <p className="receipt-line-text">Verify Cash App payment manually</p>

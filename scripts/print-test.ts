@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
-import { buildReceiptBuffer, sendToPrinter } from "./print-bridge.ts";
+import {
+  buildReceiptBuffer,
+  playPrintedOrderAlert,
+  sendToPrinter,
+} from "./print-bridge.ts";
 import type { PrintableOrder } from "./print-bridge.ts";
 
 dotenv.config({ path: ".env.local" });
@@ -22,27 +26,21 @@ const testOrder: PrintableOrder = {
     },
     {
       id: "item-1",
-      menuItemId: "B",
-      menuItemNumber: "B",
-      modifiers: [
-        {
-          groupId: "specialty-platter-side",
-          groupLabel: "Add a Side",
-          optionId: "french-fries",
-          optionLabel: "French Fries",
-          priceDeltaCents: 225,
-        },
-      ],
+      menuItemId: "C",
+      menuItemNumber: "C",
       name: "Fried Chicken Wings (4 Whole)",
       notes: "",
       quantity: 1,
+      selectedPrice: "$8.75",
+      selectedPriceId: "french-fries",
+      selectedPriceLabel: "French Fries",
       spicy: false,
       unitPrice: 8.75,
     },
     {
       id: "item-2",
-      menuItemId: "12",
-      menuItemNumber: "12",
+      menuItemId: "13",
+      menuItemNumber: "13",
       modifiers: [
         {
           groupId: "item-option",
@@ -52,16 +50,16 @@ const testOrder: PrintableOrder = {
           priceDeltaCents: 0,
         },
       ],
-      name: "Dumplings",
+      name: "Steamed or Fried Dumplings (8)",
       notes: "",
       quantity: 1,
       spicy: false,
-      unitPrice: 7.99,
+      unitPrice: 7.5,
     },
     {
       id: "item-3",
-      menuItemId: "24",
-      menuItemNumber: "24",
+      menuItemId: "26",
+      menuItemNumber: "26",
       modifiers: [
         {
           groupId: "item-option",
@@ -71,7 +69,7 @@ const testOrder: PrintableOrder = {
           priceDeltaCents: 0,
         },
       ],
-      name: "Chicken Soup",
+      name: "Chicken Noodle or Rice Soup",
       notes: "",
       quantity: 1,
       selectedPrice: "$3.25",
@@ -84,7 +82,16 @@ const testOrder: PrintableOrder = {
       id: "item-4",
       menuItemId: "L12",
       menuItemNumber: "L12",
-      name: "Hunan Chicken",
+      modifiers: [
+        {
+          groupId: "lunch-special-rice",
+          groupLabel: "Rice",
+          optionId: "fried-rice",
+          optionLabel: "Fried Rice",
+          priceDeltaCents: 0,
+        },
+      ],
+      name: "General Tso's Chicken",
       notes: "",
       quantity: 1,
       spicy: true,
@@ -105,8 +112,17 @@ const testOrder: PrintableOrder = {
     },
     {
       id: "item-6",
-      menuItemId: "C13",
-      menuItemNumber: "C13",
+      menuItemId: "C12",
+      menuItemNumber: "C12",
+      modifiers: [
+        {
+          groupId: "special-combination-rice",
+          groupLabel: "Rice",
+          optionId: "white-rice",
+          optionLabel: "White Rice",
+          priceDeltaCents: 0,
+        },
+      ],
       name: "General Tso's Chicken",
       notes: "",
       quantity: 1,
@@ -117,19 +133,33 @@ const testOrder: PrintableOrder = {
   orderNumber: "TEST-001",
   paymentMethod: "Cash App",
   phone: "856-342-6828",
-  pickupChoice: "ASAP",
-  pickupTime: "ASAP",
+  pickupChoice: "Later",
+  pickupTime: "2026-08-20T18:30",
   specialInstructions: "This is a printer test.",
-  subtotal: 60.26,
+  subtotal: 59.78,
 };
 
 console.log("[print-test] Sending test receipt to thermal printer...");
 
-sendToPrinter(buildReceiptBuffer(testOrder))
-  .then(() => {
+async function runPrintTest() {
+  try {
+    await sendToPrinter(buildReceiptBuffer(testOrder));
     console.log("[print-test] Test receipt sent successfully.");
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error("[print-test] Test receipt failed.", error);
     process.exit(1);
-  });
+  }
+
+  console.log("[print-test] Playing computer alert...");
+  try {
+    await playPrintedOrderAlert();
+  } catch (error) {
+    console.error(
+      "[print-test] Receipt printed, but the computer alert failed.",
+      error,
+    );
+    process.exit(1);
+  }
+}
+
+void runPrintTest();

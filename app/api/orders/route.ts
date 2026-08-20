@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import {
   createCartModifier,
   getItemOptionGroup,
@@ -10,10 +11,14 @@ import {
   findMenuItemWithSection,
   isLunchSection,
   isLunchSpecialAvailable,
+  isValueComboAvailable,
+  isValueComboSection,
   LUNCH_SPECIAL_HOURS_MESSAGE,
+  VALUE_COMBO_HOURS_MESSAGE,
 } from "@/lib/order-availability";
 import type { PaymentMethod, PickupTimeChoice } from "@/lib/order-types";
 import { formatUsPhone, isValidUsPhone } from "@/lib/phone";
+import { isValidScheduledPickupTime } from "@/lib/pickup-time";
 import { calculateOrderTotalCents, parsePriceOptions } from "@/lib/pricing";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 
@@ -125,7 +130,7 @@ function validateModifierGroups(
 }
 
 function createOrderNumber() {
-  return `C1-${Date.now().toString().slice(-6)}`;
+  return `C1-${randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`;
 }
 
 export async function POST(request: Request) {
@@ -184,6 +189,10 @@ export async function POST(request: Request) {
     return jsonError("Please choose a scheduled pickup time.", 400);
   }
 
+  if (pickupType === "Later" && !isValidScheduledPickupTime(pickupTime)) {
+    return jsonError("Please choose a valid scheduled pickup date and time.", 400);
+  }
+
   if (specialInstructions.length > 500) {
     return jsonError("Special instructions must be 500 characters or fewer.", 400);
   }
@@ -196,7 +205,9 @@ export async function POST(request: Request) {
     return jsonError("This order has too many line items.", 400);
   }
 
-  const lunchAvailable = isLunchSpecialAvailable(new Date());
+  const validationDate = new Date();
+  const lunchAvailable = isLunchSpecialAvailable(validationDate);
+  const valueComboAvailable = isValueComboAvailable(validationDate);
   const validatedItems = [];
   let subtotalCents = 0;
 
@@ -229,6 +240,13 @@ export async function POST(request: Request) {
         `Lunch specials are only available ${LUNCH_SPECIAL_HOURS_MESSAGE
           .replace("Lunch specials are available ", "")
           .replace(".", "")}.`,
+        400,
+      );
+    }
+
+    if (isValueComboSection(menuMatch.section) && !valueComboAvailable) {
+      return jsonError(
+        `${VALUE_COMBO_HOURS_MESSAGE.replace("$9.99 Value Combo is available ", "$9.99 Value Combo is only available ").replace(".", "")}.`,
         400,
       );
     }

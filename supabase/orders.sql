@@ -84,11 +84,6 @@ alter table public.order_items enable row level security;
 alter table public.restaurant_settings enable row level security;
 
 drop policy if exists "Anyone can create pickup orders" on public.orders;
-create policy "Anyone can create pickup orders"
-on public.orders
-for insert
-to anon
-with check (true);
 
 drop policy if exists "Anyone can read pickup orders for MVP admin" on public.orders;
 create policy "Anyone can read pickup orders for MVP admin"
@@ -106,11 +101,6 @@ using (true)
 with check (true);
 
 drop policy if exists "Anyone can create pickup order items" on public.order_items;
-create policy "Anyone can create pickup order items"
-on public.order_items
-for insert
-to anon
-with check (true);
 
 drop policy if exists "Anyone can read pickup order items for MVP admin" on public.order_items;
 create policy "Anyone can read pickup order items for MVP admin"

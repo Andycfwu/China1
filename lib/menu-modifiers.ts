@@ -1,4 +1,4 @@
-import type { MenuItem, MenuSection } from "@/lib/menu-data";
+import type { MenuItem, MenuSection } from "./menu-data.ts";
 
 export type MenuModifierOption = {
   id: string;
@@ -32,28 +32,9 @@ function normalizeOptionId(label: string, index: number) {
   return normalized || `option-${index + 1}`;
 }
 
-const RICE_AND_LO_MEIN_SIDE_UPGRADES: MenuModifierOption[] = [
-  { id: "crabmeat-fried-rice", label: "Crabmeat Fried Rice", priceDeltaCents: 100 },
-  { id: "vegetable-fried-rice", label: "Vegetable Fried Rice", priceDeltaCents: 100 },
-  { id: "chicken-fried-rice", label: "Chicken Fried Rice", priceDeltaCents: 100 },
-  { id: "pork-fried-rice", label: "Pork Fried Rice", priceDeltaCents: 100 },
-  { id: "beef-fried-rice", label: "Beef Fried Rice", priceDeltaCents: 150 },
-  { id: "shrimp-fried-rice", label: "Shrimp Fried Rice", priceDeltaCents: 150 },
-  {
-    id: "house-special-fried-rice",
-    label: "House Special Fried Rice",
-    priceDeltaCents: 150,
-  },
-  { id: "plain-lo-mein", label: "Plain Lo Mein", priceDeltaCents: 300 },
-  { id: "chicken-lo-mein", label: "Chicken Lo Mein", priceDeltaCents: 375 },
-  { id: "pork-lo-mein", label: "Pork Lo Mein", priceDeltaCents: 375 },
-  { id: "beef-lo-mein", label: "Beef Lo Mein", priceDeltaCents: 450 },
-  { id: "shrimp-lo-mein", label: "Shrimp Lo Mein", priceDeltaCents: 450 },
-  {
-    id: "house-special-lo-mein",
-    label: "House Special Lo Mein",
-    priceDeltaCents: 550,
-  },
+const INCLUDED_RICE_OPTIONS: MenuModifierOption[] = [
+  { id: "fried-rice", label: "Fried Rice", priceDeltaCents: 0 },
+  { id: "white-rice", label: "White Rice", priceDeltaCents: 0 },
 ];
 
 const REGULAR_ENTREE_SIDE_UPGRADES: MenuModifierOption[] = [
@@ -144,45 +125,39 @@ const FAMILY_SPECIAL_VEGETABLE_MEAT_OPTIONS: MenuModifierOption[] = [
   },
 ];
 
-export const SPECIALTY_PLATTER_SIDE_GROUP: MenuModifierGroup = {
-  id: "specialty-platter-side",
-  label: "Add a Side",
-  required: false,
-  options: [
-    { id: "fried-banana", label: "Fried Banana", priceDeltaCents: 225 },
-    { id: "french-fries", label: "French Fries", priceDeltaCents: 225 },
-    { id: "plain-fried-rice", label: "Plain Fried Rice", priceDeltaCents: 225 },
-    { id: "pork-fried-rice", label: "Pork Fried Rice", priceDeltaCents: 325 },
-    { id: "chicken-fried-rice", label: "Chicken Fried Rice", priceDeltaCents: 325 },
-    { id: "beef-fried-rice", label: "Beef Fried Rice", priceDeltaCents: 375 },
-    { id: "shrimp-fried-rice", label: "Shrimp Fried Rice", priceDeltaCents: 375 },
-    { id: "plain-lo-mein", label: "Plain Lo Mein", priceDeltaCents: 375 },
-    { id: "vegetable-lo-mein", label: "Vegetable Lo Mein", priceDeltaCents: 575 },
-    { id: "chicken-lo-mein", label: "Chicken Lo Mein", priceDeltaCents: 575 },
-    { id: "beef-lo-mein", label: "Beef Lo Mein", priceDeltaCents: 575 },
-    { id: "shrimp-lo-mein", label: "Shrimp Lo Mein", priceDeltaCents: 575 },
-    { id: "pork-lo-mein", label: "Pork Lo Mein", priceDeltaCents: 575 },
-    {
-      id: "house-special-lo-mein",
-      label: "House Special Lo Mein",
-      priceDeltaCents: 675,
-    },
-    { id: "cheese-fries", label: "Cheese Fries", priceDeltaCents: 345 },
-  ],
+const VALUE_COMBO_CHOICES: MenuModifierOption[] = [
+  { id: "a-fried-chicken-wings", label: "A. Fried Chicken Wings (2)", priceDeltaCents: 0 },
+  { id: "b-popcorn-chicken", label: "B. Popcorn Chicken", priceDeltaCents: 0 },
+  { id: "c-bang-bang-shrimp", label: "C. Bang Bang Shrimp (6)", priceDeltaCents: 0 },
+  { id: "d-fried-fish", label: "D. Fried Fish (1 Piece)", priceDeltaCents: 0 },
+  { id: "e-fried-shrimp-basket", label: "E. Fried Shrimp Basket (6)", priceDeltaCents: 0 },
+  { id: "f-chicken-on-stick", label: "F. Chicken on Stick (2)", priceDeltaCents: 0 },
+  { id: "g-krab-rangoons", label: "G. Krab Rangoons (3)", priceDeltaCents: 0 },
+  { id: "h-chicken-fingers", label: "H. Chicken Fingers (2)", priceDeltaCents: 0 },
+  { id: "i-old-bay-shrimp", label: "I. Old Bay Shrimp (6)", priceDeltaCents: 0 },
+  { id: "j-sweet-sour-chicken", label: "J. Sweet & Sour Chicken", priceDeltaCents: 0 },
+  { id: "k-fried-chicken-gizzards", label: "K. Fried Chicken Gizzards", priceDeltaCents: 0 },
+  { id: "l-spare-rib-tips", label: "L. Spare Rib Tips", priceDeltaCents: 0 },
+  { id: "m-fried-scallop", label: "M. Fried Scallop (4)", priceDeltaCents: 0 },
+  { id: "n-shrimp-on-stick", label: "N. Shrimp on Stick (2)", priceDeltaCents: 0 },
+  { id: "o-fried-krab-sticks", label: "O. Fried Krab Sticks (2)", priceDeltaCents: 0 },
+  { id: "p-mozzarella-sticks", label: "P. Mozzarella Sticks (3)", priceDeltaCents: 0 },
+  { id: "q-sesame-ball", label: "Q. Sesame Ball (5)", priceDeltaCents: 0 },
+  { id: "r-steamed-dumplings", label: "R. Steamed Dumplings (3)", priceDeltaCents: 0 },
+];
+
+export const LUNCH_SPECIAL_RICE_GROUP: MenuModifierGroup = {
+  id: "lunch-special-rice",
+  label: "Rice",
+  required: true,
+  options: INCLUDED_RICE_OPTIONS,
 };
 
-export const LUNCH_SPECIAL_SIDE_GROUP: MenuModifierGroup = {
-  id: "lunch-special-side",
-  label: "Side Upgrade",
-  required: false,
-  options: RICE_AND_LO_MEIN_SIDE_UPGRADES,
-};
-
-export const SPECIAL_COMBINATION_SIDE_GROUP: MenuModifierGroup = {
-  id: "special-combination-side",
-  label: "Side Upgrade",
-  required: false,
-  options: RICE_AND_LO_MEIN_SIDE_UPGRADES,
+export const SPECIAL_COMBINATION_RICE_GROUP: MenuModifierGroup = {
+  id: "special-combination-rice",
+  label: "Rice",
+  required: true,
+  options: INCLUDED_RICE_OPTIONS,
 };
 
 export const REGULAR_ENTREE_SIDE_GROUP: MenuModifierGroup = {
@@ -190,6 +165,27 @@ export const REGULAR_ENTREE_SIDE_GROUP: MenuModifierGroup = {
   label: "Side Upgrade",
   required: false,
   options: REGULAR_ENTREE_SIDE_UPGRADES,
+};
+
+export const VALUE_COMBO_CHOICE_1_GROUP: MenuModifierGroup = {
+  id: "value-combo-choice-1",
+  label: "Choice 1",
+  required: true,
+  options: VALUE_COMBO_CHOICES,
+};
+
+export const VALUE_COMBO_CHOICE_2_GROUP: MenuModifierGroup = {
+  id: "value-combo-choice-2",
+  label: "Choice 2",
+  required: true,
+  options: VALUE_COMBO_CHOICES,
+};
+
+export const VALUE_COMBO_RICE_GROUP: MenuModifierGroup = {
+  id: "value-combo-rice",
+  label: "Rice",
+  required: true,
+  options: INCLUDED_RICE_OPTIONS,
 };
 
 const FAMILY_SPECIAL_GROUPS_BY_ITEM_ID: Record<string, MenuModifierGroup[]> = {
@@ -279,6 +275,10 @@ export function isSpecialCombinationSection(section: Pick<MenuSection, "id">) {
   return section.id === "combination-platters";
 }
 
+export function isValueComboSection(section: Pick<MenuSection, "id">) {
+  return section.id === "value-combo";
+}
+
 export function isRegularEntreeSection(section: Pick<MenuSection, "id">) {
   return [
     "vegetable",
@@ -288,20 +288,25 @@ export function isRegularEntreeSection(section: Pick<MenuSection, "id">) {
     "pork",
     "egg-foo-young",
     "diet-menu",
-    "chow-mein-chop-suey",
-    "moo-shu",
     "sweet-sour",
-    "sweet-and-sour",
   ].includes(section.id);
 }
 
 export function getModifierGroupsForSection(section: Pick<MenuSection, "id">) {
   if (isLunchSpecialSection(section)) {
-    return [LUNCH_SPECIAL_SIDE_GROUP];
+    return [LUNCH_SPECIAL_RICE_GROUP];
   }
 
   if (isSpecialCombinationSection(section)) {
-    return [SPECIAL_COMBINATION_SIDE_GROUP];
+    return [SPECIAL_COMBINATION_RICE_GROUP];
+  }
+
+  if (isValueComboSection(section)) {
+    return [
+      VALUE_COMBO_CHOICE_1_GROUP,
+      VALUE_COMBO_CHOICE_2_GROUP,
+      VALUE_COMBO_RICE_GROUP,
+    ];
   }
 
   if (isRegularEntreeSection(section)) {
@@ -322,14 +327,16 @@ export function getModifierGroupsForItem(
   return getModifierGroupsForSection(section);
 }
 
-export function getItemOptionGroup(item: Pick<MenuItem, "options">) {
+export function getItemOptionGroup(
+  item: Pick<MenuItem, "optionLabel" | "options">,
+) {
   if (!item.options?.length) {
     return null;
   }
 
   return {
     id: ITEM_OPTION_GROUP_ID,
-    label: "Option",
+    label: item.optionLabel ?? "Option",
     required: true,
     options: item.options.map((option, index) => ({
       id: option.id ?? normalizeOptionId(option.label, index),

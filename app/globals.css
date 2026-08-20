@@ -187,6 +187,21 @@ a {
     margin-top: 2px;
   }
 
+  .receipt-scheduled-pickup {
+    border: 2px solid #000;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1.2;
+    margin: 6px 0;
+    padding: 5px 3px;
+    text-align: center;
+  }
+
+  .receipt-scheduled-pickup p + p {
+    font-size: 21px;
+    margin-top: 2px;
+  }
+
   .receipt-divider {
     border: 0;
     border-top: 1px solid #000;

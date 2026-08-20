@@ -18,9 +18,9 @@ const popularItems = [
   ),
   findMenuItem(
     "specialty-platters",
-    (item) => item.name === "Fried Chicken Wings (4 whole)",
+    (item) => item.id === "C",
   ),
-  findMenuItem("lo-mein", (item) => item.id === "33"),
+  findMenuItem("lo-mein", (item) => item.id === "36"),
 ].filter((item): item is MenuItem => Boolean(item));
 
 export function PopularItems() {

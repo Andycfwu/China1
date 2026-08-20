@@ -36,13 +36,20 @@ import {
 } from "@/lib/order-store";
 import {
   getUnavailableLunchCartItems,
+  getUnavailableValueComboCartItems,
+  isCombinationCartItem,
   isItemCurrentlyAvailable,
   isLunchCartItem,
   isLunchSection,
   isLunchSpecialAvailable,
+  isValueComboCartItem,
+  isValueComboSection,
   LUNCH_CHECKOUT_BLOCK_MESSAGE,
   LUNCH_SPECIAL_HOURS_MESSAGE,
   LUNCH_SPECIAL_UNAVAILABLE_MESSAGE,
+  VALUE_COMBO_CHECKOUT_BLOCK_MESSAGE,
+  VALUE_COMBO_HOURS_MESSAGE,
+  VALUE_COMBO_UNAVAILABLE_MESSAGE,
 } from "@/lib/order-availability";
 import {
   formatCurrency,
@@ -90,6 +97,12 @@ export function OrderMenu({ sections }: OrderMenuProps) {
     [cart.items, now],
   );
   const hasUnavailableLunchCartItems = unavailableLunchCartItems.length > 0;
+  const unavailableValueComboCartItems = useMemo(
+    () => getUnavailableValueComboCartItems(cart.items, now),
+    [cart.items, now],
+  );
+  const hasUnavailableValueComboCartItems =
+    unavailableValueComboCartItems.length > 0;
 
   const visibleSections = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -302,7 +315,7 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                         Includes can soda
                       </p>
                     ) : null}
-                    {item.menuItemId.startsWith("C") ? (
+                    {isCombinationCartItem(item) ? (
                       <p className="mt-1 text-xs font-black uppercase text-stone-700">
                         Includes egg roll
                       </p>
@@ -379,7 +392,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
               cash or Cash App at pickup.
             </p>
 
-            {onlineOrderingOpen && !hasUnavailableLunchCartItems ? (
+            {onlineOrderingOpen &&
+            !hasUnavailableLunchCartItems &&
+            !hasUnavailableValueComboCartItems ? (
               <Link
                 className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-[var(--china-red)] px-4 py-3 text-base font-black text-white transition hover:bg-[var(--dark-red)]"
                 href="/checkout"
@@ -394,7 +409,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
               </div>
             ) : (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-center text-sm font-black leading-6 text-[var(--china-red)]">
-                {LUNCH_CHECKOUT_BLOCK_MESSAGE}
+                {hasUnavailableLunchCartItems
+                  ? LUNCH_CHECKOUT_BLOCK_MESSAGE
+                  : VALUE_COMBO_CHECKOUT_BLOCK_MESSAGE}
               </div>
             )}
           </div>
@@ -554,6 +571,13 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                 const lunchSection = isLunchSection(section);
                 const lunchAvailable =
                   !lunchSection || isLunchSpecialAvailable(now);
+                const valueComboSection = isValueComboSection(section);
+                const valueComboAvailable =
+                  !valueComboSection || isItemCurrentlyAvailable(
+                    section.items[0],
+                    section,
+                    now,
+                  );
 
                 return (
                   <section
@@ -595,6 +619,23 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                         {!lunchAvailable ? (
                           <p className="mt-1">
                             {LUNCH_SPECIAL_UNAVAILABLE_MESSAGE}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {valueComboSection ? (
+                      <div
+                        className={`mt-4 rounded-xl border p-3 text-sm font-black leading-6 ${
+                          valueComboAvailable
+                            ? "border-green-200 bg-green-50 text-[var(--deep-bamboo)]"
+                            : "border-red-200 bg-red-50 text-[var(--china-red)]"
+                        }`}
+                      >
+                        <p>{VALUE_COMBO_HOURS_MESSAGE}</p>
+                        {!valueComboAvailable ? (
+                          <p className="mt-1">
+                            {VALUE_COMBO_UNAVAILABLE_MESSAGE}
                           </p>
                         ) : null}
                       </div>
@@ -722,10 +763,10 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                               modifierGroup.id
                                             ] ?? "";
                                           const modifierLabel = itemOptionGroup
-                                            ? "Choose"
-                                            : lunchSpecial ||
-                                                specialCombination ||
-                                                regularEntree
+                                            ? item.optionLabel
+                                              ? `Choose ${item.optionLabel.toLowerCase()}`
+                                              : "Choose"
+                                            : regularEntree
                                               ? "Side upgrade"
                                               : modifierGroup.label;
                                           const emptyLabel =
@@ -799,11 +840,18 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                             </label>
                                           );
                                         })}
-                                        {lunchSpecial || specialCombination ? (
+                                        {lunchSpecial ||
+                                        specialCombination ||
+                                        isValueComboCartItem({
+                                          menuItemId: item.id,
+                                          menuItemKey: itemKey,
+                                        }) ? (
                                           <p className="text-xs font-black uppercase text-stone-600">
                                             {lunchSpecial
                                               ? "Includes can soda"
-                                              : "Includes egg roll"}
+                                              : specialCombination
+                                                ? "Includes egg roll"
+                                                : "Includes can soda"}
                                           </p>
                                         ) : null}
                                       </div>
@@ -927,7 +975,9 @@ export function OrderMenu({ sections }: OrderMenuProps) {
                                       {!onlineOrderingOpen
                                         ? "Ordering Closed"
                                         : !itemAvailable
-                                          ? "Lunch Unavailable"
+                                          ? valueComboSection
+                                            ? "Value Combo Unavailable"
+                                            : "Lunch Unavailable"
                                         : missingRequiredModifier
                                           ? "Choose options"
                                         : quantityInCart > 0

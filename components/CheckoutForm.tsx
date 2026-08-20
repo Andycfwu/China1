@@ -12,9 +12,14 @@ import {
 } from "@/lib/order-store";
 import {
   getUnavailableLunchCartItems,
+  getUnavailableValueComboCartItems,
+  isCombinationCartItem,
   isLunchCartItem,
+  isValueComboCartItem,
   LUNCH_CHECKOUT_BLOCK_MESSAGE,
   LUNCH_SPECIAL_HOURS_MESSAGE,
+  VALUE_COMBO_CHECKOUT_BLOCK_MESSAGE,
+  VALUE_COMBO_HOURS_MESSAGE,
 } from "@/lib/order-availability";
 import { formatCartModifierLabel } from "@/lib/menu-modifiers";
 import type { PaymentMethod, PickupTimeChoice, StoredOrder } from "@/lib/order-types";
@@ -46,6 +51,11 @@ export function CheckoutForm() {
     [cart.items, now],
   );
   const hasUnavailableLunchItems = unavailableLunchItems.length > 0;
+  const unavailableValueComboItems = useMemo(
+    () => getUnavailableValueComboCartItems(cart.items, now),
+    [cart.items, now],
+  );
+  const hasUnavailableValueComboItems = unavailableValueComboItems.length > 0;
   const phoneValid = isValidUsPhone(phone);
   const showPhoneError = phone.trim().length > 0 && !phoneValid;
   const cashAppReady = paymentMethod !== "Cash App" || cashAppAcknowledged;
@@ -87,6 +97,7 @@ export function CheckoutForm() {
     () =>
       onlineOrderingOpen &&
       !hasUnavailableLunchItems &&
+      !hasUnavailableValueComboItems &&
       cart.items.length > 0 &&
       customerName.trim().length > 1 &&
       phoneValid &&
@@ -97,6 +108,7 @@ export function CheckoutForm() {
       cart.items.length,
       customerName,
       hasUnavailableLunchItems,
+      hasUnavailableValueComboItems,
       laterTime,
       onlineOrderingOpen,
       phoneValid,
@@ -114,6 +126,11 @@ export function CheckoutForm() {
 
     if (hasUnavailableLunchItems) {
       setSubmitError(LUNCH_CHECKOUT_BLOCK_MESSAGE);
+      return;
+    }
+
+    if (hasUnavailableValueComboItems) {
+      setSubmitError(VALUE_COMBO_CHECKOUT_BLOCK_MESSAGE);
       return;
     }
 
@@ -431,6 +448,17 @@ export function CheckoutForm() {
           </div>
         ) : null}
 
+        {hasUnavailableValueComboItems ? (
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-black leading-6 text-[var(--china-red)]">
+            <p>{VALUE_COMBO_CHECKOUT_BLOCK_MESSAGE}</p>
+            <p className="mt-1 text-stone-700">{VALUE_COMBO_HOURS_MESSAGE}</p>
+            <p className="mt-2 text-stone-700">
+              Value combo items in cart:{" "}
+              {unavailableValueComboItems.map((item) => item.name).join(", ")}
+            </p>
+          </div>
+        ) : null}
+
         {showPhoneError ? (
           <p className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-black leading-6 text-[var(--china-red)]">
             {PHONE_ERROR}
@@ -492,7 +520,12 @@ export function CheckoutForm() {
                       Includes can soda
                     </p>
                   ) : null}
-                  {item.menuItemId.startsWith("C") ? (
+                  {isValueComboCartItem(item) ? (
+                    <p className="mt-1 text-xs font-black uppercase text-stone-700">
+                      Includes can soda
+                    </p>
+                  ) : null}
+                  {isCombinationCartItem(item) ? (
                     <p className="mt-1 text-xs font-black uppercase text-stone-700">
                       Includes egg roll
                     </p>
