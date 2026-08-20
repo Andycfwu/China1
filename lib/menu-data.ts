@@ -612,8 +612,7 @@ export const menuSections: MenuSection[] = [
         price: "$2.50",
       },
       { id: "DR-8", name: "Red Bull 12 fl oz", price: "$3.50" },
-      { id: "DR-9", name: "Red Bull 12 fl oz", price: "$2.50" },
-      { id: "DR-10", name: "Monster 16 fl oz", price: "$2.50" },
+      { id: "DR-9", name: "Monster 16 fl oz", price: "$2.50" },
     ],
   },
   {
